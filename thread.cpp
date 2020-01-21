@@ -86,12 +86,12 @@ bool Thread::event(Event *pevent)
         return true;
     }
     quietDebug() << this << __func__ << metaEnum<DrumlinEventType>().toString((DrumlinEventType)pevent->type());
-    if((guint32)pevent->type() < (guint32)DrumlinEventEvent_first
-            || (guint32)pevent->type() > (guint32)DrumlinEventEvent_last){
+    if((unsigned int)pevent->type() < (unsigned int)DrumlinEventEvent_first
+            || (unsigned int)pevent->type() > (unsigned int)DrumlinEventEvent_last){
         return false;
     }
-    if((guint32)pevent->type() > (guint32)DrumlinEventThread_first
-            && (guint32)pevent->type() < (guint32)DrumlinEventThread_last){
+    if((unsigned int)pevent->type() > (unsigned int)DrumlinEventThread_first
+            && (unsigned int)pevent->type() < (unsigned int)DrumlinEventThread_last){
         quietDebug() << pevent->getName();
         switch(pevent->type()){
         case DrumlinEventThreadWork:

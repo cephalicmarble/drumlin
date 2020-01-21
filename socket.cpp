@@ -93,8 +93,8 @@ void SocketAdapter<asio::ip::tcp>::completing_impl()
 template<>
 bool SocketAdapter<asio::ip::tcp>::event(Event *pevent)
 {
-    if((guint32)pevent->type() > (guint32)DrumlinEventSocket_first
-            && (guint32)pevent->type() < (guint32)DrumlinEventSocket_last){
+    if((unsigned int)pevent->type() > (unsigned int)DrumlinEventSocket_first
+            && (unsigned int)pevent->type() < (unsigned int)DrumlinEventSocket_last){
         switch(pevent->type()){
         case DrumlinEventSocketThreadProcess:
             process_impl();
@@ -166,8 +166,8 @@ void SocketAdapter<asio::ip::udp>::completing_impl()
 template<>
 bool SocketAdapter<asio::ip::udp>::event(Event *pevent)
 {
-    if((guint32)pevent->type() > (guint32)DrumlinEventSocket_first
-            && (guint32)pevent->type() < (guint32)DrumlinEventSocket_last){
+    if((unsigned int)pevent->type() > (unsigned int)DrumlinEventSocket_first
+            && (unsigned int)pevent->type() < (unsigned int)DrumlinEventSocket_last){
         switch(pevent->type()){
         case DrumlinEventSocketThreadProcess:
             process_impl();

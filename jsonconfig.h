@@ -11,7 +11,6 @@ using namespace std;
 using namespace tao;
 #include "object.h"
 #include "socket.h"
-#include "request.h"
 using namespace drumlin;
 
 //#include <QBluetoothDeviceInfo>
@@ -49,7 +48,6 @@ public:
     json::value *object();
 
 //    json::value from(BluetoothLEDevice*);
-    void save(Pleg::Request *request);
     void save(ostream &device);
     void save(string const& path);
 public:

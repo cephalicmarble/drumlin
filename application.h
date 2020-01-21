@@ -175,8 +175,8 @@ public:
             return true;
         }
         try{
-            if((guint32)pevent->type() < (guint32)DrumlinEventEvent_first
-            || (guint32)pevent->type() > (guint32)DrumlinEventEvent_last){
+            if((unsigned int)pevent->type() < (unsigned int)DrumlinEventEvent_first
+            || (unsigned int)pevent->type() > (unsigned int)DrumlinEventEvent_last){
                 return false;
             }
             switch(pevent->type()){
@@ -231,7 +231,7 @@ public:
     virtual void stop()
     {
         Debug() << this << __func__;
-        for(guint16 type = (guint16)ThreadType_terminator-1;type>(guint16)ThreadType_first;type--){
+        for(unsigned short type = (unsigned short)ThreadType_terminator-1;type>(unsigned short)ThreadType_first;type--){
             threads_type threads(getThreads((ThreadWorker::Type)type));
             for(threads_type::value_type &thread : threads){
                 thread->terminate();
@@ -253,7 +253,7 @@ public:
         if(Tracer::tracer!=nullptr){
             Tracer::endTrace();
         }
-        make_event(DrumlinEventApplicationShutdown,"Signal::shutdown",(Object*)(gint64)signal)->punt();
+        make_event(DrumlinEventApplicationShutdown,"Signal::shutdown",(Object*)(unsigned long long)signal)->punt();
         return true;
     }
 protected:

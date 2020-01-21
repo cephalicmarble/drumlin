@@ -88,7 +88,7 @@ bool SignalHandler::handleSignal(int signal)
     if(Tracer::tracer!=nullptr){
         Tracer::endTrace();
     }
-    make_event(DrumlinEventApplicationShutdown,lexical_cast<string>(signal).c_str(),(Object*)(gint64)signal)->punt();
+    make_event(DrumlinEventApplicationShutdown,lexical_cast<string>(signal).c_str(),(Object*)(unsigned long long)signal)->punt();
     return true;
 }
 

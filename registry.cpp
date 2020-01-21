@@ -1,7 +1,6 @@
 #include "registry.h"
 
 #include "thread.h"
-#include "source.h"
 #include <boost/thread/lock_guard.hpp>
 
 namespace drumlin {

@@ -11,7 +11,6 @@ using namespace std;
 #include <boost/array.hpp>
 using namespace boost;
 #include "object.h"
-#include "glib.h"
 #include "logger.h"
 
 namespace drumlin {
@@ -19,7 +18,7 @@ namespace drumlin {
 class byte_array
 {
 public:
-    typedef gint64 size_type;
+    typedef unsigned long long size_type;
     byte_array();
     byte_array(const void *mem,size_t length,bool takeOwnership = false);
     byte_array(const string &owner);
@@ -53,7 +52,7 @@ private:
 class IBuffer {
 public:
     virtual const void *data()const=0;
-    virtual guint32 length()const=0;
+    virtual unsigned int length()const=0;
 };
 
 /*
@@ -76,7 +75,7 @@ struct Buffer {
     typedef void *ptr_type;
     struct free_buffer_t {
         char* data;
-        gint64 len;
+        unsigned long long len;
     };
     union buffers_t {
         const IBuffer *_buffer;
@@ -85,7 +84,7 @@ struct Buffer {
         ~buffers_t(){}
     }buffers;
 public:
-    Buffer(ptr_type _data,gint64 _len);
+    Buffer(ptr_type _data,unsigned long long _len);
     Buffer(byte_array const& bytes);
     Buffer(string const& );
     Buffer(const char *cstr);
@@ -103,7 +102,7 @@ public:
         }
         return nullptr;
     }
-    gint64 length();
+    unsigned long long length();
 };
 /**
  * @brief buffers_type : the type of the socket's internal buffer vector

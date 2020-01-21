@@ -6,7 +6,6 @@ using namespace std;
 #include <boost/asio.hpp>
 #include <boost/thread/mutex.hpp>
 using namespace boost;
-#include "glib.h"
 #include "socket.h"
 #include "exception.h"
 

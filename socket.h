@@ -15,7 +15,6 @@ using namespace std;
 #include <boost/asio/buffer.hpp>
 using namespace boost;
 #include "byte_array.h"
-#include "glib.h"
 #include "metatypes.h"
 #include "thread.h"
 
@@ -34,6 +33,8 @@ ENUM(verbs_type,verbs)
 ENUM(socketTask,socketTasks)
 
 namespace drumlin {
+
+    using std::distance;
 
 /**
  * @brief The SocketFlushBehaviours enum
@@ -159,7 +160,7 @@ public:
     void *getTag(){ return tag; }
     Connection<Protocol> *getConnection(){ return m_connection; }
     typedef SocketFlushBehaviours FlushBehaviours;
-    gint64 bytesToWrite()const{ return numBytes; }
+    unsigned long long bytesToWrite()const{ return numBytes; }
     void clearWriteBuffers()
     {
         WRITELOCK
@@ -221,7 +222,7 @@ public:
      * @param flushBehaviours quint8
      * @return byte_array
      */
-    byte_array peekData(guint8 flushBehaviours,bool writeBuffer = false)
+    byte_array peekData(unsigned char flushBehaviours,bool writeBuffer = false)
     {
         if(writeBuffer)
             WRITELOCK
@@ -326,7 +327,7 @@ public:
      * @return qint64
      */
     template <class T,typename boost::disable_if<typename boost::is_pointer<T>::type,int>::type = 0>
-    gint64 write(T const& t,bool prepend = false)
+    unsigned long long write(T const& t,bool prepend = false)
     {
         WRITELOCK;
         numBytes += t.length();
@@ -343,7 +344,7 @@ public:
      * @return qint64
      */
     template <class T,typename boost::enable_if<typename boost::is_pointer<T>::type,int>::type = 0>
-    gint64 write(T const t,bool prepend = false)
+    unsigned long long write(T const t,bool prepend = false)
     {
         WRITELOCK;
         numBytes += t->length();
@@ -374,7 +375,7 @@ private:
     drumlin::buffers_type readBuffers;
     bool finished = false;
     bool closing = false;
-    gint64 numBytes = 0;
+    unsigned long long numBytes = 0;
     SocketHandler<Protocol> *m_handler = nullptr;
     ThreadWorker *m_worker = nullptr;
     Connection<Protocol> *m_connection = nullptr;

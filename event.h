@@ -5,7 +5,6 @@
 #include <string>
 #include <functional>
 using namespace std;
-#include "glib.h"
 #include "metatypes.h"
 #include "object.h"
 #include "thread.h"
@@ -50,7 +49,7 @@ void setQuietEvents(bool keepQuiet);
 class Event
 {
 public:
-    typedef guint32 Type;
+    typedef unsigned int Type;
 public:
     /**
      * @brief type

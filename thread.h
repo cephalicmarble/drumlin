@@ -16,7 +16,6 @@ using namespace boost;
 #include "registry.h"
 #include "status.h"
 using namespace drumlin;
-#include "glib.h"
 
 #define ThreadTypes (\
     ThreadType_first,\
@@ -96,10 +95,10 @@ public:
     operator const char*()const;
     friend logger &operator<<(logger &stream,const Thread &rel);
     friend class ThreadWorker;
-    void wait(gint64 millis = -1){
+    void wait(unsigned long long millis = 0){
         if(!m_thread.joinable())
             return;
-        if(millis<0)
+        if(0 == millis)
             m_thread.join();
         else
             m_thread.try_join_for(boost::chrono::milliseconds(millis));
