@@ -3,6 +3,8 @@
 
 #include <mutex>
 using namespace std;
+#include <boost/thread.hpp>
+using namespace boost;
 
 namespace drumlin {
 

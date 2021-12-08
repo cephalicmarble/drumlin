@@ -133,7 +133,7 @@ void byte_array::append(const void *m_next,size_t length)
      * @param _data void*
      * @param _len qint64
      */
-Buffer::Buffer(void*_data,unsigned long long _len):type(FreeBuffer)
+Buffer::Buffer(void*_data,gint64 _len):type(FreeBuffer)
 {
     buffers.free_buffer.len = _len;
     buffers.free_buffer.data = (char*)malloc(buffers.free_buffer.len);
@@ -194,7 +194,7 @@ Buffer::~Buffer()
      * @brief Buffer::length
      * @return qint64
      */
-unsigned long long Buffer::length()
+gint64 Buffer::length()
 {
     switch(type){
     case FreeBuffer:

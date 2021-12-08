@@ -1,10 +1,6 @@
-#include <drumlin.h>
-#include <tao/json.hpp>
-using namespace tao;
+#define TAOJSON
 #include "thread.h"
-#include "event.h"
-#include "application.h"
-#include "metatypes.h"
+
 #include <sstream>
 #include <sys/time.h>
 #ifdef LINUX
@@ -14,6 +10,10 @@ using namespace tao;
 using namespace std;
 #include <boost/thread/sync_queue.hpp>
 using namespace boost;
+#include "drumlin.h"
+#include "event.h"
+#include "application.h"
+#include "metatypes.h"
 
 namespace drumlin {
 
@@ -86,12 +86,12 @@ bool Thread::event(Event *pevent)
         return true;
     }
     quietDebug() << this << __func__ << metaEnum<DrumlinEventType>().toString((DrumlinEventType)pevent->type());
-    if((unsigned int)pevent->type() < (unsigned int)DrumlinEventEvent_first
-            || (unsigned int)pevent->type() > (unsigned int)DrumlinEventEvent_last){
+    if((guint32)pevent->type() < (guint32)DrumlinEventEvent_first
+            || (guint32)pevent->type() > (guint32)DrumlinEventEvent_last){
         return false;
     }
-    if((unsigned int)pevent->type() > (unsigned int)DrumlinEventThread_first
-            && (unsigned int)pevent->type() < (unsigned int)DrumlinEventThread_last){
+    if((guint32)pevent->type() > (guint32)DrumlinEventThread_first
+            && (guint32)pevent->type() < (guint32)DrumlinEventThread_last){
         quietDebug() << pevent->getName();
         switch(pevent->type()){
         case DrumlinEventThreadWork:
@@ -177,26 +177,21 @@ void Thread::quit()
     m_thread.interrupt();
 }
 
-Thread *Thread::setTask(string _task)
-{
-    iapp->renameThread(this,_task);
-    m_task = _task;
-    return this;
-}
-
 void ThreadWorker::stop()
 {
     shutdown();
     signalTermination();
 }
 
-ThreadWorker::ThreadWorker(Type _type,Object *parent) : Object(parent),m_type(_type)
+ThreadWorker::ThreadWorker(Type _type,Object *parent = nullptr) : Object(parent),m_type(_type)
 {
 }
 
 ThreadWorker::ThreadWorker(Type _type,string task) : Object(),m_type(_type)
 {
-    startThread(task);
+    std::lock_guard<std::recursive_mutex> l(m_critical_section);
+    m_thread = new Thread(task);
+    m_thread->setWorker(this);
 }
 
 /**
@@ -221,13 +216,6 @@ ThreadWorker::~ThreadWorker()
         m_thread->m_worker = nullptr;
 }
 
-void ThreadWorker::startThread(string task)
-{
-    std::lock_guard<std::recursive_mutex> l(m_critical_section);
-    m_thread = new Thread(task);
-    m_thread->setWorker(this);
-}
-
 /**
  * @brief ThreadWorker::signalTermination
  */
@@ -237,19 +225,25 @@ void ThreadWorker::signalTermination()
         getThread()->terminate();
 }
 
-void ThreadWorker::getStatus(json::value *obj)const
+void ThreadWorker::report(json::value *obj,ReportType type)const
 {
     auto &map(obj->get_object());
     map.insert({"task",getThread()->getTask()});
     map.insert({"type",string(metaEnum<Type>().toString(this->m_type))});
-    map.insert({"elapsed",getThread()->elapsed()});
-    map.insert({"memory",0});
-    if(map.end()==map.find("jobs"))
-        map.insert({"jobs",json::empty_object});
-    for(jobs_type::value_type const& job : m_jobs){
-        json::value job_obj(json::empty_object);
-        job.second->getStatus(&job_obj);
-        map.at("jobs").get_object().insert({job.first,job_obj});
+    if(type & WorkObject::ReportType::Elapsed){
+        map.insert({"elapsed",getThread()->elapsed()});
+    }
+    if(type & WorkObject::ReportType::Memory){
+        map.insert({"memory",0});
+    }
+    if(type & WorkObject::ReportType::Jobs){
+        if(map.end()==map.find("jobs"))
+            map.insert({"jobs",json::empty_object});
+        for(jobs_type::value_type const& job : m_jobs){
+            json::value job_obj(json::empty_object);
+            job.second->report(&job_obj,type);
+            map.at("jobs").get_object().insert({job.first,job_obj});
+        }
     }
 }
 
@@ -262,7 +256,7 @@ void ThreadWorker::postWork(Object *sender)
 
 void ThreadWorker::writeToObject(json::value *obj)const
 {
-    getStatus(obj);
+    report(obj,WorkObject::ReportType::All);
     obj->get_object().insert({"task",getThread()->getTask()});
 }
 

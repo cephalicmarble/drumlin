@@ -16,7 +16,6 @@ using namespace std;
 using namespace boost;
 #include "byte_array.h"
 #include "metatypes.h"
-#include "thread.h"
 
 #define verbs (\
     NONE,\
@@ -33,8 +32,6 @@ ENUM(verbs_type,verbs)
 ENUM(socketTask,socketTasks)
 
 namespace drumlin {
-
-    using std::distance;
 
 /**
  * @brief The SocketFlushBehaviours enum
@@ -66,6 +63,11 @@ class Socket;
 template <class Protocol>
 class Connection;
 
+template <class Protocol>
+class readHandler;
+template <class Protocol>
+class writeHandler;
+
 /**
  * @brief The SocketHandler class : abstract class to generalize over sockets
  */
@@ -83,6 +85,18 @@ public:
     virtual void error(Socket *socket,boost::system::error_code &ec)=0;
 };
 
+struct ISocketTask
+{
+    virtual ~ISocketTask(){}
+    virtual socketTask type()=0;
+    void setTaskFinished(bool flag)
+    {
+        m_finished = flag;
+    }
+private:
+    bool m_finished = false;
+};
+
 template <class Protocol>
 struct SocketAdapter
 {
@@ -90,15 +104,10 @@ struct SocketAdapter
     typedef SocketAdapter<Protocol> Self;
     typedef typename Socket<Protocol>::recv_buf_type recv_buf_type;
 
-    SocketAdapter(const socket_type *);
+    SocketAdapter(Socket<Protocol> *);
     SocketAdapter(Self &self):m_socket(self.m_socket){}
 
     void error(boost::system::error_code ec);
-    void process();
-    void completing();
-    void process_impl();
-    void completing_impl();
-    bool event(Event *pevent);
 private:
     socket_type *m_socket;
 };
@@ -113,7 +122,6 @@ template <class Protocol = asio::ip::tcp>
 class Socket : public Object
 {
 public:
-    typedef Connection<Protocol> connection_type;
     typedef SocketHandler<Protocol> Handler;
     typedef typename Protocol::socket socket_type;
     typedef Protocol protocol_type;
@@ -128,8 +136,8 @@ public:
 //        readBuffers.clear();
 //        writeBuffers.clear();
 //    }
-    Socket(Object *parent,connection_type *connection)
-        :Object(parent),m_connection(connection)
+    Socket(asio::io_service &io_service, Object *parent, Handler *_handler,socket_type *socket)
+        :Object(parent),handler(_handler),m_io_service(io_service),m_sock_type(socket)
     {
         READLOCK
         WRITELOCK
@@ -140,9 +148,9 @@ public:
     {
         READLOCK
         WRITELOCK
-        m_handler = nullptr;
-        m_connection->asio_socket().close();
-        delete m_connection;
+        m_connection = nullptr;
+        handler = nullptr;
+        m_sock_type->close();
         writeBuffers.erase(std::remove_if(writeBuffers.begin(),writeBuffers.end(),[](auto &){return true;}),writeBuffers.end());
         readBuffers.erase(std::remove_if(readBuffers.begin(),readBuffers.end(),[](auto &){return true;}),readBuffers.end());
     }
@@ -151,22 +159,17 @@ public:
      * @param _tag void*
      */
     Self &setTag(void *_tag){ tag = (void*)_tag; return *this; }
-    Self &setHandler(Handler *_handler){ m_handler = _handler; return *this; }
-    Self &setWorker(ThreadWorker *worker){ m_worker = worker; return *this; }
-   /**
+    Self &setConnection(Connection<Protocol> *connection){ m_connection = connection; return *this; }
+    Self &setHandler(Handler *_handler){ handler = _handler; return *this; }
+    /**
      * @brief getTag : return the void* associated with the socket
      * @return void*
      */
     void *getTag(){ return tag; }
     Connection<Protocol> *getConnection(){ return m_connection; }
     typedef SocketFlushBehaviours FlushBehaviours;
-    unsigned long long bytesToWrite()const{ return numBytes; }
-    void clearWriteBuffers()
-    {
-        WRITELOCK
-        writeBuffers.clear();
-        numBytes = 0;
-    }
+    gint64 bytesToWrite()const{ return numBytes; }
+
     /**
      * @brief Socket::setClosing : the socket ought to be closed
      * @param c bool
@@ -193,7 +196,7 @@ public:
             try{
                 sz = socket().receive(asio::buffer(m_recv_buf.data(),m_recv_buf.max_size()));
                 bytesRead(boost::system::error_code(),sz);
-            }catch(boost::system::system_error error){
+            }catch(boost::system::system_error const& error){
                 bytesRead(error.code(),sz);
             }
         }else{
@@ -211,9 +214,32 @@ public:
         }
         readBuffers.push_back(drumlin::buffers_type::value_type(new drumlin::Buffer(m_recv_buf.data(),sz)));
         m_bytes_transferred += sz;
-        adapter_type(this).process();
+        process();
         if(!finished){
             reading();
+        }
+    }
+
+    void process()
+    {
+        if(!handler)
+            return;
+        bool replying = false;
+        //        if(socketType() == SocketType::TcpSocket) {
+        if(handler->readyProcess(this)){
+            Debug() << this << "::processTransmission";
+            replying = handler->processTransmission(this);
+        }
+        //        }else{
+        //            Debug() << this << "::receivePacket";
+        //            replying = handler->receivePacket(this);
+        //        }
+        if(replying){
+            Debug() << this << "::reply";
+            replying = false;
+            setFinished(handler->reply(this));
+            if(finished)
+                handler->completing(this);
         }
     }
 
@@ -222,25 +248,19 @@ public:
      * @param flushBehaviours quint8
      * @return byte_array
      */
-    byte_array peekData(unsigned char flushBehaviours,bool writeBuffer = false)
+    byte_array peekData(guint8 flushBehaviours)
     {
-        if(writeBuffer)
-            WRITELOCK
-        else
-            READLOCK;
-
-        buffers_type &buffers(writeBuffer?writeBuffers:readBuffers);
-
+        READLOCK;
         char *freud(nullptr);
-        if(m_handler && flushBehaviours & SocketFlushBehaviours::Sort){
-            m_handler->sort(this,buffers);
+        if(handler && flushBehaviours & SocketFlushBehaviours::Sort){
+            handler->sort(this,readBuffers);
         }
         if(freud){
             free(freud);
         }
         size_t length(0);
         if(flushBehaviours & SocketFlushBehaviours::Coalesce){
-            for(auto &buf : buffers){
+            for(auto &buf : readBuffers){
                 length += buf->length();
             }
             if(length){
@@ -250,7 +270,7 @@ public:
                     return byte_array("");
                 }
                 char *pos(freud);
-                for(auto &buf : buffers){
+                for(auto &buf : readBuffers){
                     memmove(pos,buf->data<void>(),buf->length());
                     pos += buf->length();
                 }
@@ -258,12 +278,12 @@ public:
                 freud = nullptr;
             }
         }else{
-            drumlin::buffers_type::value_type &buf(buffers.front());
+            drumlin::buffers_type::value_type &buf(readBuffers.front());
             freud = (char*)malloc(1+(length = buf->length()));
             memmove(freud,buf->data<void>(),length);
         }
         if(flushBehaviours & SocketFlushBehaviours::Flush){
-            buffers.clear();
+            readBuffers.clear();
         }
         if(freud)
             freud[length] = 0;
@@ -281,7 +301,7 @@ public:
             try{
                 sz = socket().send(asio::buffer(p_buffer->data<void>(),p_buffer->length()));
                 bytesWritten(boost::system::error_code(),sz);
-            }catch(boost::system::system_error error){
+            }catch(boost::system::system_error const& error){
                 bytesWritten(error.code(),sz);
             }
         }else{
@@ -297,7 +317,7 @@ public:
             adapter_type(this).error(ec);
             return;
         }
-        size_t d(distance(writeBuffers.begin(),writeBuffers.end()));
+        size_t d(std::distance(writeBuffers.begin(),writeBuffers.end()));
         if(d-->0){
             if(sz < (size_t)writeBuffers.front()->length()){
                 m_bytes_written += sz;
@@ -310,14 +330,14 @@ public:
                 return;
             writing();
         }else if(finished){
-            adapter_type(this).completing();
+            handler->completing(this);
         }
     }
 
     size_t writeQueueLength()
     {
         WRITELOCK;
-        return distance(writeBuffers.begin(),writeBuffers.end());
+        return std::distance(writeBuffers.begin(),writeBuffers.end());
     }
 
     /**
@@ -327,7 +347,7 @@ public:
      * @return qint64
      */
     template <class T,typename boost::disable_if<typename boost::is_pointer<T>::type,int>::type = 0>
-    unsigned long long write(T const& t,bool prepend = false)
+    gint64 write(T const& t,bool prepend = false)
     {
         WRITELOCK;
         numBytes += t.length();
@@ -344,7 +364,7 @@ public:
      * @return qint64
      */
     template <class T,typename boost::enable_if<typename boost::is_pointer<T>::type,int>::type = 0>
-    unsigned long long write(T const t,bool prepend = false)
+    gint64 write(T const t,bool prepend = false)
     {
         WRITELOCK;
         numBytes += t->length();
@@ -357,7 +377,7 @@ public:
 
     void getStatus(json::value &status);
 
-    socket_type &socket(){return m_connection->asio_socket();}
+    socket_type &socket(){return *m_sock_type;}
 
     friend class SocketHandler<Protocol>;
     friend class SocketAdapter<Protocol>;
@@ -375,11 +395,12 @@ private:
     drumlin::buffers_type readBuffers;
     bool finished = false;
     bool closing = false;
-    unsigned long long numBytes = 0;
-    SocketHandler<Protocol> *m_handler = nullptr;
-    ThreadWorker *m_worker = nullptr;
+    gint64 numBytes = 0;
+    SocketHandler<Protocol> *handler = nullptr;
     Connection<Protocol> *m_connection = nullptr;
     void *tag;
+    asio::io_service &m_io_service;
+    socket_type *m_sock_type;
 };
 
 } // namespace drumlin

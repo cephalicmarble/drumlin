@@ -14,7 +14,7 @@ using namespace boost;
 #include "object.h"
 #include "metatypes.h"
 #include "registry.h"
-#include "status.h"
+#include "gtypes.h"
 using namespace drumlin;
 
 #define ThreadTypes (\
@@ -25,7 +25,6 @@ using namespace drumlin;
     ThreadType_gstreamer,\
     ThreadType_transform,\
     ThreadType_terminator,\
-    ThreadType_lad,\
     ThreadType_test,\
     ThreadType_last\
 )
@@ -39,6 +38,12 @@ namespace drumlin {
 class ThreadWorker;
 class Event;
 class Server;
+
+class StatusReporter {
+public:
+    virtual ~StatusReporter(){}
+    virtual void getStatus(json::value *status)const=0;
+};
 
 class ThreadWorker;
 
@@ -82,7 +87,7 @@ public:
      * @param _task string
      * @return Thread*
      */
-    Thread *setTask(string _task);
+    Thread *setTask(string _task){ m_task = _task; return this; }
     virtual ~Thread();
     double elapsed();
 protected:
@@ -95,10 +100,10 @@ public:
     operator const char*()const;
     friend logger &operator<<(logger &stream,const Thread &rel);
     friend class ThreadWorker;
-    void wait(unsigned long long millis = 0){
+    void wait(gint64 millis = -1){
         if(!m_thread.joinable())
             return;
-        if(0 == millis)
+        if(millis<0)
             m_thread.join();
         else
             m_thread.try_join_for(boost::chrono::milliseconds(millis));
@@ -118,7 +123,8 @@ private:
  */
 class ThreadWorker :
     public Object,
-    public WorkObject
+    public WorkObject,
+    public StatusReporter
 {
 public:
     double elapsed;
@@ -133,7 +139,7 @@ public:
      */
     virtual void writeToStream(std::ostream &stream)const;
     virtual void writeToObject(json::value *obj)const;
-    virtual void getStatus(json::value *)const;
+    virtual void getStatus(json::value *)const{}
 public:
     std::recursive_mutex m_critical_section;
     /**
@@ -152,12 +158,12 @@ public:
      */
     jobs_type const& getJobs()const{ return m_jobs; }
     void stop();
-    ThreadWorker(Type _type,Object * = nullptr);
+    ThreadWorker(Type _type,Object *);
     ThreadWorker(Type _type,string task);
     ThreadWorker(Type _type,Thread *_thread);
     virtual ~ThreadWorker();
-    void startThread(string task);
     virtual void shutdown()=0;
+    virtual void report(json::value *obj,ReportType type)const;
     virtual void work(Object *,Event *){}
     virtual bool event(Event *){return false;}
     void postWork(Object *sender);

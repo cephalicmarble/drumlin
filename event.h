@@ -1,10 +1,10 @@
 #ifndef EVENT_H
 #define EVENT_H
 
-#include <drumlin.h>
 #include <string>
 #include <functional>
 using namespace std;
+#include "drumlin.h"
 #include "metatypes.h"
 #include "object.h"
 #include "thread.h"
@@ -25,12 +25,6 @@ using namespace std;
     DrumlinEventApplicationThreadsGone,\
     DrumlinEventApplicationShutdown,\
     DrumlinEventApplicationRestart,\
-\
-    DrumlinEventSocket_first,\
-    DrumlinEventSocketThreadProcess,\
-    DrumlinEventSocketThreadCompleting,\
-    DrumlinEventSocket_last,\
-\
     DrumlinEventEvent_last\
 )
 ENUM(DrumlinEventType,DrumlinEventTypes)
@@ -49,7 +43,7 @@ void setQuietEvents(bool keepQuiet);
 class Event
 {
 public:
-    typedef unsigned int Type;
+    typedef guint32 Type;
 public:
     /**
      * @brief type
@@ -208,10 +202,10 @@ const ThreadEvent<T> *make_event(Event::Type _type,const char *error,T *that = 0
  * @brief The ThreadEvent class
  */
 template <typename T>
-class RefEvent : public Event
+class PodEvent : public Event
 {
 public:
-    T getVal()const{
+    T &getVal(){
         return m_ptr;
     }
     /**
@@ -221,10 +215,20 @@ public:
      * @param _thread Thread*
      * @param _payload T
      */
-    RefEvent(Type _type,string _error,T const& _payload) : Event(_type,_error),m_ptr(_payload)
+    PodEvent(Type _type,string _error,T _payload) : Event(_type,_error),m_ptr(_payload)
     {
     }
 
+    /**
+     * @brief ThreadEvent : only constructor
+     * @param _type DrumlinEventType
+     * @param _error const char*
+     * @param _thread Thread*
+     * @param _payload T
+     */
+    PodEvent(Type _type,string _error,T &&_payload) : Event(_type,_error),m_ptr(std::move(_payload))
+    {
+    }
 
     /**
      * @brief clone : look out for null pointers!
@@ -232,7 +236,8 @@ public:
      */
     virtual Event *clone()
     {
-        return new RefEvent<T>(type(),getName(),m_ptr);
+        T _ptr(m_ptr);
+        return new PodEvent<T>(type(),getName(),_ptr);
     }
 private:
     T m_ptr;
@@ -245,9 +250,9 @@ private:
  * @param that T*
  */
 template <class T>
-const RefEvent<T> *make_ref_event(Event::Type _type,const char *error,T that)
+const PodEvent<T> *make_pod_event(Event::Type _type,const char *error,T that)
 {
-    RefEvent<T> *event(new RefEvent<T>(_type,error,that));
+    PodEvent<T> *event(new PodEvent<T>(_type,error,that));
     return event;
 }
 
@@ -256,77 +261,14 @@ const RefEvent<T> *make_ref_event(Event::Type _type,const char *error,T that)
  * @param Event*
  */
 template <class T>
-RefEvent<T> *event_cast_ref(const Event *event,T *out = 0)
+PodEvent<T> *pod_event_cast(const Event *event,T *out = 0)
 {
     if(out){
-        RefEvent<T> *ret = static_cast<RefEvent<T>*>(const_cast<Event*>(event));
+        PodEvent<T> *ret = static_cast<PodEvent<T>*>(const_cast<Event*>(event));
         *out = ret->getVal();
         return ret;
     }
-    return static_cast<RefEvent<T>*>(const_cast<Event*>(event));
-}
-
-/**
- * @brief The ThreadEvent class
- */
-template <typename T>
-class MovableEvent : public Event
-{
-public:
-    T &&getVal(){
-        return m_ptr;
-    }
-    /**
-     * @brief ThreadEvent : only constructor
-     * @param _type DrumlinEventType
-     * @param _error const char*
-     * @param _thread Thread*
-     * @param _payload T
-     */
-    MovableEvent(Type _type,string _error,T &&_payload) : Event(_type,_error),m_ptr(std::move(_payload))
-    {
-    }
-
-
-    /**
-     * @brief clone : look out for null pointers!
-     * @return Event*
-     */
-    virtual Event *clone()
-    {
-        T &&_ptr(m_ptr);
-        return new MovableEvent<T>(type(),getName(),_ptr);
-    }
-private:
-    T m_ptr;
-};
-
-/**
- * @brief event_cast : used to stash something in an event for sending to eventFilter
- * @param _type DrumlinEventType
- * @param error const char*
- * @param that T*
- */
-template <class T>
-const MovableEvent<T> *make_moved_event(Event::Type _type,const char *error,T &&that)
-{
-    MovableEvent<T> *event(new MovableEvent<T>(_type,error,std::move(that)));
-    return event;
-}
-
-/**
- * @brief event_cast : used in eventFilter to dereference the ThreadEvent
- * @param Event*
- */
-template <class T>
-MovableEvent<T> *event_cast_moved(const Event *event,T *out = 0)
-{
-    if(out){
-        MovableEvent<T> *ret = static_cast<MovableEvent<T>*>(const_cast<Event*>(event));
-        *out = std::move(ret->getVal());
-        return ret;
-    }
-    return static_cast<MovableEvent<T>*>(const_cast<Event*>(event));
+    return static_cast<PodEvent<T>*>(const_cast<Event*>(event));
 }
 
 } // namespace drumlin

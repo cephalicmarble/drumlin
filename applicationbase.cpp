@@ -1,5 +1,4 @@
-#include <tao/json.hpp>
-using namespace tao;
+#define TAOJSON
 #include "applicationbase.h"
 
 namespace drumlin {

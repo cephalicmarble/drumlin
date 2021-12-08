@@ -41,9 +41,8 @@ public:
 
     void setDefaultValue(json::value *parent,const json::object_initializer &&);
     void setKey(const json::object_initializer && l);
-    json::value *getKey(string const& key)const;
-    bool has(std::string const& key)const;
-    json::value &operator[](string const& key)const;
+    json::value *getKey(string const& key);
+    json::value operator[](string const& key)const;
     json::value &at(string const& key)const;
     json::value *object();
 
@@ -71,7 +70,6 @@ private:
 extern string devices_config_file;
 extern string gstreamer_config_file;
 extern string files_config_file;
-extern string routes_config_file;
 
 json::value *object(json::value *obj = 0);
 json::value *array(json::value *array = 0);

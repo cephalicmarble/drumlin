@@ -11,6 +11,7 @@ using namespace std;
 #include <boost/array.hpp>
 using namespace boost;
 #include "object.h"
+#include "gtypes.h"
 #include "logger.h"
 
 namespace drumlin {
@@ -18,7 +19,7 @@ namespace drumlin {
 class byte_array
 {
 public:
-    typedef unsigned long long size_type;
+    typedef gint64 size_type;
     byte_array();
     byte_array(const void *mem,size_t length,bool takeOwnership = false);
     byte_array(const string &owner);
@@ -36,7 +37,7 @@ public:
     void *data()const{ return m_data; }
     size_type  length()const{ return m_length; }
     void truncate(size_type len){ if(m_data && m_length > std::max(m_length,len)){((char*)m_data)[m_length=len] = 0;} }
-    std::string string()const{ return m_length?std::string((char*)m_data,0,m_length):std::string(); }
+    std::string string(){ return m_length?std::string((char*)m_data,0,m_length):std::string(); }
     void *release(){ m_destroy = false; return data(); }
     void append(std::string &str);
     void append(const void *m_next,size_t length);
@@ -52,7 +53,7 @@ private:
 class IBuffer {
 public:
     virtual const void *data()const=0;
-    virtual unsigned int length()const=0;
+    virtual guint32 length()const=0;
 };
 
 /*
@@ -75,7 +76,7 @@ struct Buffer {
     typedef void *ptr_type;
     struct free_buffer_t {
         char* data;
-        unsigned long long len;
+        gint64 len;
     };
     union buffers_t {
         const IBuffer *_buffer;
@@ -84,7 +85,7 @@ struct Buffer {
         ~buffers_t(){}
     }buffers;
 public:
-    Buffer(ptr_type _data,unsigned long long _len);
+    Buffer(ptr_type _data,gint64 _len);
     Buffer(byte_array const& bytes);
     Buffer(string const& );
     Buffer(const char *cstr);
@@ -102,7 +103,7 @@ public:
         }
         return nullptr;
     }
-    unsigned long long length();
+    gint64 length();
 };
 /**
  * @brief buffers_type : the type of the socket's internal buffer vector

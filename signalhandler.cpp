@@ -1,12 +1,13 @@
-#include <drumlin.h>
+#define TAOJSON
+#include "signalhandler.h"
+
 #include <assert.h>
 #include <boost/lexical_cast.hpp>
 using namespace boost;
-#include "signalhandler.h"
+#include "drumlin.h"
 #include "cursor.h"
 #include "event.h"
 #include "application.h"
-using namespace drumlin;
 
 #ifndef _WIN32
 
@@ -88,7 +89,7 @@ bool SignalHandler::handleSignal(int signal)
     if(Tracer::tracer!=nullptr){
         Tracer::endTrace();
     }
-    make_event(DrumlinEventApplicationShutdown,lexical_cast<string>(signal).c_str(),(Object*)(unsigned long long)signal)->punt();
+    make_event(DrumlinEventApplicationShutdown,lexical_cast<string>(signal).c_str(),(Object*)(gint64)signal)->punt();
     return true;
 }
 
@@ -116,8 +117,6 @@ int POSIX_logicalToPhysical(int signal)
     case SignalHandler::SIG_CLOSE: return SIGTERM;
     case SignalHandler::SIG_RELOAD: return SIGHUP;
     case SignalHandler::SIG_SEGV: return SIGSEGV;
-    case SignalHandler::SIG_PIPE: return SIGPIPE;
-    case SignalHandler::SIG_CHILD: return SIGCHLD;
     default:
         return -1; // SIG_ERR = -1
     }
@@ -146,8 +145,6 @@ int POSIX_physicalToLogical(int signal)
     case SIGTERM: return SignalHandler::SIG_TERM;
     case SIGHUP: return SignalHandler::SIG_RELOAD;
     case SIGSEGV: return SignalHandler::SIG_SEGV;
-    case SIGPIPE: return SignalHandler::SIG_PIPE;
-    case SIGCHLD: return SignalHandler::SIG_CHILD;
     default:
         return SignalHandler::SIG_UNHANDLED;
     }

@@ -8,19 +8,25 @@
 #include <mutex>
 using namespace std;
 #include <boost/utility/enable_if.hpp>
-#include <tao_forward.h>
+#include "tao/json.hpp"
 using namespace tao;
 #include "metatypes.h"
-#include "status.h"
 
 namespace drumlin {
 
 class WorkObject
-        : public StatusProvider
 {
+    enum WorkReportType {
+        Elapsed  = 1,
+        Jobs     = 2,
+        Memory   = 4,
+        All = Elapsed|Jobs|Memory,
+    };
 public:
+    typedef WorkReportType ReportType;
     virtual ~WorkObject(){}
     virtual void stop(){}
+    virtual void report(json::value *obj,ReportType type)const=0;
 };
 
 #define REGISTRYLOCK std::lock_guard<std::recursive_mutex> l(const_cast<std::recursive_mutex&>(mutex));
@@ -75,10 +81,9 @@ public:
         REGISTRYLOCK
         typename map_type::iterator it(map.find(str));
         if(it!=map.end()){
-            typename value_type::second_type ptr(it->second);
-            map.erase(it);
             if(!noDelete)
-                delete ptr;
+                delete (*it).second;
+            map.erase(it);
         }
     }
 

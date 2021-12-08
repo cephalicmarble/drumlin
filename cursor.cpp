@@ -1,7 +1,6 @@
-#include <drumlin.h>
-#include <tao/json.hpp>
-using namespace tao;
+#define TAOJSON
 #include "cursor.h"
+
 #define UNW_LOCAL_ONLY
 #include <cxxabi.h>
 #include <cstdio>
@@ -12,14 +11,13 @@ using namespace tao;
 #include <fstream>
 #include <sstream>
 #include <queue>
+#include <boost/regex.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 using namespace boost;
+#include "drumlin.h"
 #include "thread.h"
 #include "event.h"
-#include "regex.h"
-#include <tao/json.hpp>
-using namespace tao;
 
 #ifndef _WIN32
 #include <libunwind.h>
@@ -210,10 +208,10 @@ void Tracer::addBlock(string block)
     json::value callchain(json::empty_array);
     while((line = lines.front())!=""){
         lines.pop_front();
-        SRegex rx("0x[0-9a-f]+: \\(([^ ]+ )?(([^:]+::)+[^\\(]+)\\([^\\)]+\\)\\+0x[0-9a-f]+\\)",std::regex_constants::icase);
-        if(!rx.match(line))
+        boost::regex rx("0x[0-9a-f]+: \\(([^ ]+ )?(([^:]+::)+[^\\(]+)\\([^\\)]+\\)\\+0x[0-9a-f]+\\)",boost::regex::icase);
+        boost::smatch cap;
+        if(!boost::regex_match(line,cap,rx))
             continue;
-        SRegex::capture_type cap(rx.getCap());
         string name(cap[cap.length()-1]);
         auto _roll = roll->get_array();
         auto it = std::find_if(_roll.begin(),_roll.end(),[name](json::value::array_t::value_type &rollcall){

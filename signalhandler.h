@@ -18,11 +18,9 @@ public:
         SIG_CLOSE       = 8,    // Container window closed (should perform normal termination, like Ctrl^C) [Windows only; on Linux it maps to SIG_TERM]
         SIG_RELOAD      = 16,   // Reload the configuration [Linux only, physical signal is SIGHUP; on Windows it maps to SIG_NOOP]
         SIG_SEGV        = 32,
-        SIG_PIPE        = 64,
-        SIG_CHILD       = 128,
-        DEFAULT_SIGNALS = SIG_INT | SIG_TERM | SIG_CLOSE | SIG_PIPE,
+        DEFAULT_SIGNALS = SIG_INT | SIG_TERM | SIG_CLOSE,
     };
-    static const int numSignals = 9;
+    static const int numSignals = 7;
 
     virtual bool handleSignal(int signal);
 

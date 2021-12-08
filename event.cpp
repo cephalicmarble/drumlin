@@ -1,5 +1,6 @@
 #include "event.h"
-#include <drumlin.h>
+
+#include "drumlin.h"
 #include "exception.h"
 #include "thread.h"
 #include "application.h"

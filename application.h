@@ -1,7 +1,7 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#include <object.h>
+#include "object.h"
 #include "tao_forward.h"
 using namespace tao;
 #include <mutex>
@@ -68,7 +68,7 @@ public:
     void addThread(Thread *thread)
     {
         THREADSLOCK
-        Debug() << __func__ << std::distance(threads.begin(),threads.end()) << thread->getTask() << *thread;
+        Debug() << __func__ << thread->getTask() << *thread;
         threads.add(thread->getTask(),thread->getWorker());
     }
     /**
@@ -86,13 +86,6 @@ public:
                 _threads.push_back(thread.second->getThread());
         }
         return _threads;
-    }
-
-    void renameThread(Thread *thread,string const& _new)
-    {
-        THREADSLOCK
-        threads.remove(thread->getTask(),true);
-        threads.add(_new,thread->getWorker());
     }
     /**
      * @brief getThreads
@@ -175,8 +168,8 @@ public:
             return true;
         }
         try{
-            if((unsigned int)pevent->type() < (unsigned int)DrumlinEventEvent_first
-            || (unsigned int)pevent->type() > (unsigned int)DrumlinEventEvent_last){
+            if((guint32)pevent->type() < (guint32)DrumlinEventEvent_first
+            || (guint32)pevent->type() > (guint32)DrumlinEventEvent_last){
                 return false;
             }
             switch(pevent->type()){
@@ -231,7 +224,7 @@ public:
     virtual void stop()
     {
         Debug() << this << __func__;
-        for(unsigned short type = (unsigned short)ThreadType_terminator-1;type>(unsigned short)ThreadType_first;type--){
+        for(guint16 type = (guint16)ThreadType_terminator-1;type>(guint16)ThreadType_first;type--){
             threads_type threads(getThreads((ThreadWorker::Type)type));
             for(threads_type::value_type &thread : threads){
                 thread->terminate();
@@ -253,7 +246,7 @@ public:
         if(Tracer::tracer!=nullptr){
             Tracer::endTrace();
         }
-        make_event(DrumlinEventApplicationShutdown,"Signal::shutdown",(Object*)(unsigned long long)signal)->punt();
+        make_event(DrumlinEventApplicationShutdown,"Signal::shutdown",(Object*)(gint64)signal)->punt();
         return true;
     }
 protected:

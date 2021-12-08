@@ -1,5 +1,5 @@
 #include "exception.h"
-#include <drumlin.h>
+#include "drumlin.h"
 
 namespace drumlin {
 
