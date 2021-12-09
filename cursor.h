@@ -41,7 +41,7 @@ private:
 public:
     Tracer(string _filename);
     ~Tracer();
-    void addBlock(string block);
+    void addBlock(string const& block);
     void write();
 };
 

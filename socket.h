@@ -24,7 +24,8 @@ using namespace boost;
     POST,\
     PATCH,\
     CATCH,\
-    OPTIONS \
+    OPTIONS, \
+    PUT \
 )
 ENUM(verbs_type,verbs)
 

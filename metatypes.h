@@ -3,12 +3,15 @@
 
 #include <boost/preprocessor.hpp>
 
+namespace gremlin {
+
 template <typename Identifier = void> struct enum_traits {};
 template <typename Identifier = void> typename enum_traits<Identifier>::meta_type metaEnum(){ return typename enum_traits<Identifier>::meta_type(); }
 
 #define ENUM_TO_STRING_CASE(r,data,elem) case data(elem): return #elem;
 #define STRING_TO_ENUM(r,data,elem) else if(s==#elem) {*ok = true;return data(elem);}
 #define ENUM(Identifier,Tuple) \
+  namespace gremlin { \
     typedef enum { BOOST_PP_TUPLE_ENUM(BOOST_PP_TUPLE_SIZE(Tuple),Tuple) } Identifier; \
     struct meta##Identifier { \
         typedef Identifier enum_type; \
@@ -29,12 +32,15 @@ template <typename Identifier = void> typename enum_traits<Identifier>::meta_typ
         } \
     }; \
     template <> struct enum_traits<Identifier> { typedef meta##Identifier meta_type; }; \
-    template <Identifier> typename enum_traits<Identifier>::meta_type metaEnum(){ return typename enum_traits<Identifier>::meta_type(); }
+    template <Identifier> typename enum_traits<Identifier>::meta_type metaEnum(){ return typename enum_traits<Identifier>::meta_type(); } \
+  } // namespace gremlin
+
 
 #define ENUMI_TO_STRING_CASE(r,data,elem) case data(data##elem): return #data#elem;
 #define STRING_TO_ENUMI(r,data,elem) else if(s==#data#elem) {*ok = true;return data(data##elem);}
 #define ENUMI_ELEM(r,data,elem) ,data##elem
 #define ENUMI(Identifier,Tuple) \
+  namespace gremlin { \
     typedef enum { Identifier##Unknown=0 BOOST_PP_LIST_FOR_EACH(ENUMI_ELEM,Identifier,BOOST_PP_TUPLE_TO_LIST(BOOST_PP_TUPLE_SIZE(Tuple),Tuple)) } Identifier; \
     struct meta##Identifier { \
         typedef Identifier enum_type; \
@@ -55,10 +61,12 @@ template <typename Identifier = void> typename enum_traits<Identifier>::meta_typ
         } \
     }; \
     template <> struct enum_traits<Identifier> { typedef meta##Identifier meta_type; }; \
-    template <Identifier> typename enum_traits<Identifier>::meta_type metaEnum(){ return typename enum_traits<Identifier>::meta_type(); }
+    template <Identifier> typename enum_traits<Identifier>::meta_type metaEnum(){ return typename enum_traits<Identifier>::meta_type(); } \
+  } // namespace gremlin
 
 #define ENUM_ELEM(r,data,elem) BOOST_PP_SEQ_ELEM(0,elem) BOOST_PP_SEQ_ELEM(1,elem)
 #define ENUMN(Identifier,Tuple) \
+  namespace gremlin { \
     typedef enum { BOOST_PP_LIST_FOR_EACH(ENUM_ELEM,,BOOST_PP_TUPLE_TO_LIST(BOOST_PP_TUPLE_SIZE(Tuple),Tuple)) } Identifier; \
     struct meta##Identifier { \
         typedef Identifier enum_type; \
@@ -79,7 +87,8 @@ template <typename Identifier = void> typename enum_traits<Identifier>::meta_typ
         } \
     }; \
     template <> struct enum_traits<Identifier> { typedef meta##Identifier meta_type; }; \
-    template <Identifier> typename enum_traits<Identifier>::meta_type metaEnum(){ return typename enum_traits<Identifier>::meta_type(); }
+    template <Identifier> typename enum_traits<Identifier>::meta_type metaEnum(){ return typename enum_traits<Identifier>::meta_type(); } \
+  } // namespace gremlin
 
 //struct lazy
 //{
@@ -93,8 +102,8 @@ template <typename Identifier = void> typename enum_traits<Identifier>::meta_typ
 //    bool isLoaded;
 //};
 
-namespace drumlin {
+} // namespace gremlin
 
-} // namespace drumlin
+using namespace gremlin;
 
 #endif // METATYPES_H

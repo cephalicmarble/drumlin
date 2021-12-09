@@ -8,6 +8,7 @@ namespace drumlin {
 
 byte_array::byte_array()
 {
+    m_destroy = false;
     m_data = nullptr;
     m_length = 0;
 }
@@ -42,7 +43,7 @@ byte_array::~byte_array()
 
 void byte_array::clear()
 {
-    if(m_destroy){
+    if(m_destroy && m_data != nullptr){
         free(m_data);
         m_destroy = false;
     }
@@ -52,6 +53,7 @@ void byte_array::clear()
 
 byte_array &byte_array::operator=(const byte_array &rhs)
 {
+    clear();
     m_destroy = rhs.m_destroy;
     const_cast<byte_array&>(rhs).m_destroy = false;
     m_data = rhs.m_data;
@@ -144,11 +146,15 @@ Buffer::Buffer(void*_data,gint64 _len):type(FreeBuffer)
      * @brief Buffer::Buffer : copy from byte_array
      * @param bytes byte_array
      */
-Buffer::Buffer(byte_array const& bytes):type(FreeBuffer)
+Buffer::Buffer(byte_array const& bytes, bool freeAfterUse):type(freeAfterUse ? FreeBuffer : TempBuffer)
 {
     buffers.free_buffer.len = bytes.length();
-    buffers.free_buffer.data = (char*)malloc(buffers.free_buffer.len);
-    memcpy(buffers.free_buffer.data,(void*)bytes.data(),buffers.free_buffer.len);
+    if (freeAfterUse) {
+        buffers.free_buffer.data = (char*)malloc(buffers.free_buffer.len);
+        memcpy(buffers.free_buffer.data, bytes.data(), buffers.free_buffer.len);
+    } else {
+        buffers.free_buffer.data = (char*)bytes.data();
+    }
 }
 
 /**
@@ -197,6 +203,7 @@ Buffer::~Buffer()
 gint64 Buffer::length()
 {
     switch(type){
+    case TempBuffer:
     case FreeBuffer:
         return buffers.free_buffer.len;
     case CacheBuffer:
@@ -210,6 +217,7 @@ gint64 Buffer::length()
 Buffer::operator byte_array()
 {
     switch(type){
+    case TempBuffer:
     case FreeBuffer:
         return byte_array::fromRawData(const_cast<void*>(data<void>()),length());
     case CacheBuffer:

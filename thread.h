@@ -12,23 +12,11 @@ using namespace std;
 using namespace boost;
 #include "drumlin.h"
 #include "object.h"
-#include "metatypes.h"
 #include "registry.h"
 #include "gtypes.h"
 using namespace drumlin;
-
-#define ThreadTypes (\
-    ThreadType_first,\
-    ThreadType_http,\
-    ThreadType_bluez,\
-    ThreadType_source,\
-    ThreadType_gstreamer,\
-    ThreadType_transform,\
-    ThreadType_terminator,\
-    ThreadType_test,\
-    ThreadType_last\
-)
-ENUM(ThreadType,ThreadTypes)
+#include "../gremlin/compat.h"
+#include "thread_worker.h"
 
 namespace drumlin {
 
@@ -38,14 +26,6 @@ namespace drumlin {
 class ThreadWorker;
 class Event;
 class Server;
-
-class StatusReporter {
-public:
-    virtual ~StatusReporter(){}
-    virtual void getStatus(json::value *status)const=0;
-};
-
-class ThreadWorker;
 
 #define CRITICAL std::lock_guard<std::recursive_mutex> l(const_cast<std::recursive_mutex&>(m_critical_section));
 
@@ -116,61 +96,6 @@ private:
     bool m_terminated = false;
     boost::thread m_thread;
     string m_task;
-};
-
-/**
- * @brief The ThreadWorker class
- */
-class ThreadWorker :
-    public Object,
-    public WorkObject,
-    public StatusReporter
-{
-public:
-    double elapsed;
-    typedef Registry<WorkObject> jobs_type;
-protected:
-    jobs_type m_jobs;
-public:
-    typedef ThreadType Type;
-    /**
-     * @brief writeToStream
-     * @param stream std::ostream&
-     */
-    virtual void writeToStream(std::ostream &stream)const;
-    virtual void writeToObject(json::value *obj)const;
-    virtual void getStatus(json::value *)const{}
-public:
-    std::recursive_mutex m_critical_section;
-    /**
-     * @brief getThread
-     * @return  Thread*
-     */
-    Thread *getThread()const{ return m_thread; }
-    void signalTermination();
-    /**
-     * @brief getType
-     * @return ThreadType
-     */
-    Type getType()const{ return m_type; }
-    /**
-     * @brief start
-     */
-    jobs_type const& getJobs()const{ return m_jobs; }
-    void stop();
-    ThreadWorker(Type _type,Object *);
-    ThreadWorker(Type _type,string task);
-    ThreadWorker(Type _type,Thread *_thread);
-    virtual ~ThreadWorker();
-    virtual void shutdown()=0;
-    virtual void report(json::value *obj,ReportType type)const;
-    virtual void work(Object *,Event *){}
-    virtual bool event(Event *){return false;}
-    void postWork(Object *sender);
-    friend class Server;
-protected:
-    Thread *m_thread = nullptr;
-    Type m_type;
 };
 
 } // namespace drumlin

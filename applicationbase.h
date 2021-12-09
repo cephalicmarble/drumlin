@@ -8,6 +8,7 @@ using namespace std;
 #include <boost/thread.hpp>
 using namespace boost;
 #include "thread.h"
+#include "status.h"
 
 namespace drumlin {
 
@@ -15,7 +16,7 @@ class Event;
 
 typedef std::vector<Thread*> threads_type;
 
-class ApplicationBase : public StatusReporter
+class ApplicationBase : public StatusProvider
 {
 public:
     ApplicationBase(){}

@@ -65,8 +65,9 @@ public:
  * FreeBuffer = 2   void*
  */
 enum BufferType {
-    CacheBuffer,
-    FreeBuffer
+    TempBuffer  = 0,
+    CacheBuffer = 1,
+    FreeBuffer  = 2
 };
 /**
  * @brief The Buffer struct
@@ -86,7 +87,7 @@ struct Buffer {
     }buffers;
 public:
     Buffer(ptr_type _data,gint64 _len);
-    Buffer(byte_array const& bytes);
+    Buffer(byte_array const& bytes, bool freeAfterUse = false);
     Buffer(string const& );
     Buffer(const char *cstr);
     Buffer(const IBuffer *buffer);
@@ -96,6 +97,7 @@ public:
     const T*data()
     {
         switch(type){
+        case TempBuffer:
         case FreeBuffer:
             return (const T*)buffers.free_buffer.data;
         case CacheBuffer:

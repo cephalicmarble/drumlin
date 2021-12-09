@@ -104,7 +104,6 @@ void Cursor::backtrace(int n) {
 
     cout << "\n";
 
-    printf(cout.str().c_str());
     tracer->addBlock(cout.str().c_str());
 #else
     HANDLE process = GetCurrentProcess();
@@ -198,7 +197,7 @@ Tracer::~Tracer()
  * @brief Tracer::addBlock
  * @param block string
  */
-void Tracer::addBlock(string block)
+void Tracer::addBlock(string const& block)
 {
 //    quint32 clock(lines.front().toDouble());
 //    lines.pop_front(); //clock
