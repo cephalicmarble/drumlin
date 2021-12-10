@@ -1,0 +1,4 @@
+/home/amsc/data/pleg/drumlin/CMakeFiles/rebuild_cache.dir
+/home/amsc/data/pleg/drumlin/CMakeFiles/edit_cache.dir
+/home/amsc/data/pleg/drumlin/CMakeFiles/test.dir
+/home/amsc/data/pleg/drumlin/CMakeFiles/apptest.dir
