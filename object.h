@@ -43,12 +43,14 @@ class Thread;
 class Object
 {
 public:
-    Object(Object *parent = nullptr):m_parent(parent){}
+    Object(Object *parent = nullptr);
     virtual ~Object(){}
     virtual bool event(Event *){ return false; }
     Object *parent()const{return m_parent;}
 private:
+    void attachChild(Object *);
     Object *m_parent;
+    std::vector<Object*> m_children;
 };
 
 } // namespace drumlin

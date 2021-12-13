@@ -17,11 +17,14 @@ namespace drumlin {
 
 extern ApplicationBase *iapp;
 
+#define FRIENDTHREADSLOCK std::lock_guard<std::mutex> l(const_cast<std::mutex&>(iapp->m_critical_section));
 #define THREADSLOCK std::lock_guard<std::mutex> l(const_cast<std::mutex&>(m_critical_section));
+
+class ThreadsAccessor;
 
 class Application :
         public SignalHandler,
-        public ApplicationBase
+        protected ApplicationBase
 {
 public:
     Application() {;}
@@ -33,19 +36,6 @@ public:
      * @param start bool
      */
     void addThread(Thread *thread);
-    /**
-     * @brief Application::findThread : find threads of name or "all" of type
-     * @param name string maybe "all"
-     * @param type ThreadWorker::ThreadType
-     * @return std::vector<Thread*>
-     */
-    threads_type findThread(const string &name,ThreadWorker::Type type);
-    /**
-     * @brief getThreads
-     * @param type ThreadWorker::Type
-     * @return
-     */
-    threads_type getThreads(ThreadWorker::Type type);
 
     /**
      * @brief Application::removeThread : remove a thread
@@ -73,8 +63,11 @@ public:
 protected:
     Terminator *terminator = nullptr;
 private:
+    threads_type m_threads;
     bool terminated = false;
     boost::concurrent::sync_queue<Event*> m_queue;
+
+    friend class ThreadsAccessor;
 };
 
 } // namespace drumlin

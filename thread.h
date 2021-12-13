@@ -1,11 +1,12 @@
 #ifndef THREAD_H
 #define THREAD_H
 
+#include <chrono>
+#include <mutex>
+#include <memory>
 #include <iostream>
 #include <string>
 #include <queue>
-#include <mutex>
-#include <chrono>
 using namespace std;
 #include <boost/thread.hpp>
 #include <boost/thread/sync_queue.hpp>
@@ -16,7 +17,6 @@ using namespace boost;
 #include "gtypes.h"
 using namespace drumlin;
 #include "../gremlin/compat.h"
-#include "thread_worker.h"
 
 namespace drumlin {
 
@@ -34,23 +34,20 @@ class Server;
  */
 class Thread
 {
-public:
     typedef queue<Event*> queue_type;
+public:
     bool isTerminated(){ return m_terminated; }
     void terminate();
-    std::recursive_mutex m_critical_section;
-    Thread(string _task);
-    boost::thread const& getBoostThread()const{ CRITICAL return m_thread; }
     /**
-     * @brief setWorker
-     * @param _worker ThreadWorker*
+     * @brief  getBoostThread
+     * @return const& boost::thread
      */
-    void setWorker(ThreadWorker *_worker){ CRITICAL m_worker = _worker; }
+    boost::thread const& getBoostThread()const{ CRITICAL return *m_thread; }
     /**
      * @brief getWorker
      * @return ThreadWorker*
      */
-    ThreadWorker *getWorker()const{ CRITICAL return m_worker; }
+    std::shared_ptr<ThreadWorker> getWorker()const{ CRITICAL return m_worker; }
     /**
      * @brief isStarted
      * @return bool
@@ -62,15 +59,11 @@ public:
      * @return string
      */
     string getTask()const{ CRITICAL return m_task; }
-    /**
-     * @brief setTask
-     * @param _task string
-     * @return Thread*
-     */
-    Thread *setTask(string _task){ m_task = _task; return this; }
+    Thread(string _task, ThreadWorker *_worker);
     virtual ~Thread();
     double elapsed();
 protected:
+    virtual void start();
     virtual void run();
     virtual void exec();
     virtual bool event(Event *);
@@ -81,21 +74,25 @@ public:
     friend logger &operator<<(logger &stream,const Thread &rel);
     friend class ThreadWorker;
     void wait(gint64 millis = -1){
-        if(!m_thread.joinable())
+        if (!m_thread) {
+          return;
+        }
+        if(!m_thread->joinable())
             return;
         if(millis<0)
-            m_thread.join();
+            m_thread->join();
         else
-            m_thread.try_join_for(boost::chrono::milliseconds(millis));
+            m_thread->try_join_for(boost::chrono::milliseconds(millis));
     }
 private:
     queue_type m_queue;
-    ThreadWorker *m_worker = nullptr;
+    std::shared_ptr<ThreadWorker> m_worker;
     bool m_ready = false;
     bool m_deleting = false;
     bool m_terminated = false;
-    boost::thread m_thread;
+    std::unique_ptr<boost::thread> m_thread;
     string m_task;
+    static std::recursive_mutex m_critical_section;
 };
 
 } // namespace drumlin

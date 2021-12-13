@@ -21,7 +21,7 @@ namespace drumlin {
  * @brief Thread::Thread : construct a new thread, to be Application::addThread(*,bool start)-ed
  * @param _task string name
  */
-Thread::Thread(string _task) : m_thread(&Thread::run,this),m_task(_task)
+Thread::Thread(string _task, ThreadWorker *_worker) : m_task(_task), m_worker(_worker)
 {
 }
 
@@ -32,10 +32,10 @@ Thread::~Thread()
 {
     Debug() << __func__ << this;
     m_deleting = true;
+    if(!m_terminated) quit();
     if(!m_ready)
         return;
-    if(getWorker())
-        delete getWorker();
+    m_worker.reset();
 }
 
 void Thread::terminate()
@@ -96,7 +96,7 @@ bool Thread::event(Event *pevent)
         switch(pevent->type()){
         case DrumlinEventThreadWork:
         {
-            getWorker()->work(event_cast<Object>(pevent)->getPointer(),pevent);
+            getWorker()->work(pevent->getPointerVal<Object>(),pevent);
             break;
         }
         case DrumlinEventThreadShutdown:
@@ -113,6 +113,12 @@ bool Thread::event(Event *pevent)
     return false;
 }
 
+void Thread::start()
+{
+    m_ready = true;
+    m_thread.reset(new boost::thread(&Thread::run,this));
+}
+
 /**
  * @brief Thread::run : thread function
  * Sits and processes events, yielding to interruption and delayed stoppage from stop().
@@ -121,22 +127,16 @@ bool Thread::event(Event *pevent)
  */
 void Thread::run()
 {
-    while(!getWorker() || !getWorker()->m_critical_section.try_lock()){
-        boost::this_thread::sleep_for(boost::chrono::milliseconds(400));
-    }
-    getWorker()->m_critical_section.unlock();
-    {
-        m_ready = true;
-    }
     make_event(DrumlinEventThreadWork,"work")->send(this);
     if(!m_terminated)
         exec();
-    terminate();
     if(getWorker()){
         m_worker->shutdown();
-        delete m_worker;
-        m_worker = nullptr;
+        m_worker.reset();
+    }else{
+        terminate();
     }
+    m_ready = false;
     make_event(DrumlinEventThreadRemove,"removeThread",this)->punt();
 }
 
@@ -148,7 +148,7 @@ void Thread::post(Event *event)
 
 void Thread::exec()
 {
-    while(!m_deleting && !m_terminated && !m_thread.interruption_requested()){
+    while(!m_deleting && !m_terminated && !m_thread->interruption_requested()){
         try{
             boost::this_thread::interruption_point();
             queue_type::value_type pevent(nullptr);
@@ -174,7 +174,7 @@ void Thread::exec()
 
 void Thread::quit()
 {
-    m_thread.interrupt();
+    m_thread->interrupt();
 }
 
 /**
@@ -205,5 +205,7 @@ logger &operator<<(logger &stream,const Thread &rel)
     }
     return stream;
 }
+
+std::recursive_mutex Thread::m_critical_section;
 
 } // namespace drumlin

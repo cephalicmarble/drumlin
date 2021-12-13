@@ -6,7 +6,7 @@
 using namespace tao;
 #include "drumlin.h"
 #include "object.h"
-#include "registry.h"
+//#include "registry.h"
 #include "status.h"
 #include "gtypes.h"
 #include "../gremlin/compat.h"
@@ -18,14 +18,14 @@ namespace drumlin {
  */
 class ThreadWorker :
     public Object,
-    public WorkObject,
+//    public WorkObject,
     public StatusProvider
 {
 public:
     double elapsed;
-    typedef Registry<WorkObject> jobs_type;
+    //typedef Registry<WorkObject> jobs_type;
 protected:
-    jobs_type m_jobs;
+    //jobs_type m_jobs;
 public:
     typedef gremlin::ThreadType Type;
     /**
@@ -38,12 +38,6 @@ public:
 public:
     std::recursive_mutex m_critical_section;
     /**
-     * @brief getThread
-     * @return  Thread*
-     */
-    Thread *getThread()const{ return m_thread; }
-    void signalTermination();
-    /**
      * @brief getType
      * @return ThreadType
      */
@@ -51,20 +45,17 @@ public:
     /**
      * @brief start
      */
-    jobs_type const& getJobs()const{ return m_jobs; }
+    //jobs_type const& getJobs()const{ return m_jobs; }
     void stop();
-    ThreadWorker(Type _type,Object *);
-    ThreadWorker(Type _type,string task);
-    ThreadWorker(Type _type,Thread *_thread);
+    ThreadWorker(Type _type);
     virtual ~ThreadWorker();
     virtual void shutdown()=0;
-    virtual void report(json::value *obj,ReportType type)const;
+    void signalTermination();
+    virtual void report(json::value *obj/*,ReportType type*/)const;
     virtual void work(Object *,Event *){}
     virtual bool event(Event *){return false;}
-    void postWork(Object *sender);
     friend class Server;
 protected:
-    Thread *m_thread = nullptr;
     Type m_type;
 };
 

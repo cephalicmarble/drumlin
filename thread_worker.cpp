@@ -1,6 +1,12 @@
 #define TAOJSON
 #include "thread_worker.h"
+
+#include <sstream>
 #include "event.h"
+#include "exception.h"
+#include "thread_accessor.h"
+#include "metatypes.h"
+#include "../gremlin/compat.h"
 
 namespace drumlin {
 
@@ -10,28 +16,11 @@ void ThreadWorker::stop()
     signalTermination();
 }
 
-ThreadWorker::ThreadWorker(Type _type,Object *parent = nullptr) : Object(parent),m_type(_type)
-{
-}
-
-ThreadWorker::ThreadWorker(Type _type,string task) : Object(),m_type(_type)
-{
-    std::lock_guard<std::recursive_mutex> l(m_critical_section);
-    m_thread = new Thread(task);
-    m_thread->setWorker(this);
-}
-
 /**
- * @brief ThreadWorker::ThreadWorker : worker constructor
- * connects thread->finished() to punt event back to application for removal.
- * Sets worker to this, and moves the worker to the (already created) thread.
- * @param _thread Thread*
+ * @brief ThreadWorker::~ThreadWorker : removes the event filter
  */
-ThreadWorker::ThreadWorker(Type _type,Thread *_thread) : Object(),m_thread(_thread),m_type(_type)
+ThreadWorker::ThreadWorker(Type _type) : Object(), m_type(_type)
 {
-    std::lock_guard<std::recursive_mutex> l(m_critical_section);
-    m_thread = _thread;
-    m_thread->setWorker(this);
 }
 
 /**
@@ -39,8 +28,6 @@ ThreadWorker::ThreadWorker(Type _type,Thread *_thread) : Object(),m_thread(_thre
  */
 ThreadWorker::~ThreadWorker()
 {
-    if(m_thread)
-        m_thread->m_worker = nullptr;
 }
 
 /**
@@ -48,15 +35,23 @@ ThreadWorker::~ThreadWorker()
  */
 void ThreadWorker::signalTermination()
 {
-    if(!getThread()->isTerminated())
-        getThread()->terminate();
+    ThreadAccessor access;
+    access.getWorkered(this);
+    if(access.selectionEmpty()) {
+        std::stringstream ss;
+        ss << "no thread for " << getType() << " cannot signalTermination.";
+        throw Exception(ss);
+    }
+    if(!access.first()->isTerminated())
+        access.first()->terminate();
 }
 
-void ThreadWorker::report(json::value *obj,ReportType type)const
+void ThreadWorker::report(json::value *obj/*,ReportType type*/)const
 {
     auto &map(obj->get_object());
-    map.insert({"task",getThread()->getTask()});
-    map.insert({"type",string(gremlin::metaEnum<Type>().toString(this->m_type))});
+    //map.insert({"task",getThread()->getTask()});
+    map.insert({std::string("type"),gremlin::metaEnum<gremlin::ThreadType>().toString(this->m_type)});
+/*
     if(type & WorkObject::ReportType::Elapsed){
         map.insert({"elapsed",getThread()->elapsed()});
     }
@@ -72,19 +67,15 @@ void ThreadWorker::report(json::value *obj,ReportType type)const
             map.at("jobs").get_object().insert({job.first,job_obj});
         }
     }
-}
-
-void ThreadWorker::postWork(Object *sender)
-{
-    make_event(DrumlinEventThreadWork,__func__,sender)->send(getThread());
+*/
 }
 
 /* STREAM OPERATORS */
 
 void ThreadWorker::writeToObject(json::value *obj)const
 {
-    report(obj,WorkObject::ReportType::All);
-    obj->get_object().insert({"task",getThread()->getTask()});
+    report(obj/*,WorkObject::ReportType::All*/);
+    obj->get_object().insert({std::string("type"),gremlin::metaEnum<gremlin::ThreadType>().toString(this->m_type)});
 }
 
 void ThreadWorker::writeToStream(std::ostream &stream)const

@@ -4,6 +4,7 @@
 #include "tao_forward.h"
 using namespace tao;
 #include <mutex>
+#include <vector>
 using namespace std;
 #include <boost/thread.hpp>
 using namespace boost;
@@ -15,6 +16,8 @@ namespace drumlin {
 class Event;
 
 typedef std::vector<Thread*> threads_type;
+
+class ThreadAccessor;
 
 class ApplicationBase : public StatusProvider
 {
@@ -29,10 +32,10 @@ public:
      * @return const char*
      */
     virtual void getStatus(json::value *status)const;
-    typedef Registry<ThreadWorker> threads_reg_type;
-    std::mutex m_critical_section;
+    friend class ThreadAccessor;
 protected:
-    threads_reg_type threads;
+    std::mutex m_critical_section;
+    threads_type threads;
 };
 
 extern ApplicationBase *iapp;

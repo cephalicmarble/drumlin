@@ -11,23 +11,9 @@ using namespace std;
 #include "tao/json.hpp"
 using namespace tao;
 #include "metatypes.h"
+#include "work.h"
 
 namespace drumlin {
-
-class WorkObject
-{
-    enum WorkReportType {
-        Elapsed  = 1,
-        Jobs     = 2,
-        Memory   = 4,
-        All = Elapsed|Jobs|Memory,
-    };
-public:
-    typedef WorkReportType ReportType;
-    virtual ~WorkObject(){}
-    virtual void stop(){}
-    virtual void report(json::value *obj,ReportType type)const=0;
-};
 
 #define REGISTRYLOCK std::lock_guard<std::recursive_mutex> l(const_cast<std::recursive_mutex&>(mutex));
 
@@ -95,10 +81,10 @@ public:
     {
         REGISTRYLOCK
         for(auto pair : map){
-            WorkObject *wo(dynamic_cast<WorkObject*>(pair.second));
+            /*WorkObject *wo(dynamic_cast<WorkObject*>(pair.second));
             if(!!wo) wo->stop();
             if(!noDelete)
-                delete wo;
+                delete wo;*/
         }
         map.clear();
     }

@@ -16,39 +16,8 @@ ApplicationBase *iapp;
 void Application::addThread(Thread *thread)
 {
     THREADSLOCK
-    Debug() << __func__ << thread->getTask() << *thread;
-    threads.add(thread->getTask(),thread->getWorker());
-}
-/**
- * @brief Application::findThread : find threads of name or "all" of type
- * @param name string maybe "all"
- * @param type ThreadWorker::ThreadType
- * @return std::vector<Thread*>
- */
-threads_type Application::findThread(const string &name,ThreadWorker::Type type)
-{
-    THREADSLOCK
-    threads_type _threads;
-    for(auto thread : threads){
-        if(thread.first == name || (name == "all" && thread.second->getType() == type))
-            _threads.push_back(thread.second->getThread());
-    }
-    return _threads;
-}
-/**
- * @brief getThreads
- * @param type ThreadWorker::Type
- * @return
- */
-threads_type Application::getThreads(ThreadWorker::Type type)
-{
-    THREADSLOCK
-    threads_type found;
-    for(auto thread : threads){
-        if(thread.second->getType() == type)
-            found.push_back(thread.second->getThread());
-    }
-    return found;
+    Debug() << __func__ << thread->getTask() << ":" << thread->getName();
+    threads.push_back(thread);
 }
 
 /**
@@ -59,11 +28,8 @@ void Application::removeThread(Thread *thread,bool noDelete)
 {
     THREADSLOCK
     Debug() << __func__ << thread->getTask();
-    threads.remove(thread->getTask(),true);
-    if(!noDelete){
-        thread->wait();
-        delete thread;
-    }
+    (void)std::remove(threads.begin(), threads.end(), thread);
+    delete thread;
     if(0==std::distance(threads.begin(),threads.end())){
         make_event(DrumlinEventApplicationThreadsGone,"threadsGone",(Object*)0)->punt();
     }
@@ -125,12 +91,12 @@ bool Application::event(Event *pevent)
         }
         case DrumlinEventThreadRemove:
         {
-            removeThread(event_cast<Thread>(pevent)->getPointer());
+            removeThread(pevent->getPointerVal<Thread>());
             break;
         }
         case DrumlinEventApplicationClose:
         {
-            shutdown((bool)event_cast<Object>(pevent)->getPointer());
+            shutdown(pevent->getVal<bool>());
             break;
         }
         case DrumlinEventApplicationThreadsGone:
@@ -169,9 +135,13 @@ bool Application::event(Event *pevent)
 void Application::stop()
 {
     Debug() << this << __func__;
+    threads_type _threads;
     for(guint16 type = (guint16)ThreadType_terminator-1;type>(guint16)ThreadType_first;type--){
-        threads_type threads(getThreads((ThreadWorker::Type)type));
-        for(threads_type::value_type &thread : threads){
+        threads.clear();
+        std::copy_if(m_threads.begin(), m_threads.end(), std::back_inserter(threads), [type](auto *thread){
+            return thread->getWorker()->getType() == type;
+        });
+        for(threads_type::value_type &thread : _threads){
             thread->terminate();
             thread->wait(-1);
         }

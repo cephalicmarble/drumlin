@@ -3,6 +3,7 @@
 
 #include <string>
 #include <exception>
+#include <sstream>
 using namespace std;
 
 namespace drumlin {
@@ -17,6 +18,7 @@ public:
     Exception();
     Exception(const Exception &rhs);
     Exception(const string &str);
+    Exception(const std::stringstream &ss);
     const char*what(){return message.c_str();}
     void raise() const { throw *this; }
     Exception *clone() const { return new Exception(*this); }

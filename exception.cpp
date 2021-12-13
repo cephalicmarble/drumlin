@@ -1,4 +1,6 @@
 #include "exception.h"
+
+#include <sstream>
 #include "drumlin.h"
 
 namespace drumlin {
@@ -16,6 +18,11 @@ Exception::Exception(const Exception &rhs) : exception()
 Exception::Exception(const string &str) : exception()
 {
     message = str;
+}
+
+Exception::Exception(const std::stringstream &ss) : exception()
+{
+    message = ss.str();
 }
 
 } // namespace drumlin
