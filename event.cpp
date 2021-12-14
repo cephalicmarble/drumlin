@@ -8,13 +8,6 @@
 
 namespace drumlin {
 
-bool quietEvents = false;
-
-void setQuietEvents(bool keepQuiet)
-{
-    quietEvents = keepQuiet;
-}
-
 /**
  * @brief operator << : qDebug stream operator
  * @param stream QDebug
@@ -23,8 +16,56 @@ void setQuietEvents(bool keepQuiet)
  */
 logger &operator <<(logger &stream, const Event &event)
 {
-    stream << event.getName();
+    std::stringstream ss;
+    ss << "{Event:" << event.getName() << ":" << metaEnum<DrumlinEventType>().toString((DrumlinEventType)event.type()) << "}";
+    stream << ss.str();
     return stream;
+}
+
+Event::Event()
+:m_type(0),m_string("none"),m_ptr(nullptr)
+{
+    init();
+}
+
+Event::Event(Type _type)
+:m_type(_type),m_string(""),m_ptr(nullptr)
+{
+    init();
+}
+
+Event::Event(Type _type,string _string)
+:m_type(_type),m_string(_string),m_ptr(nullptr)
+{
+    init();
+}
+
+Event::Event(Type _type,string _string,void *_pointer)
+:m_type(_type),m_string(_string),m_ptr(_pointer)
+{
+    init();
+}
+
+Event::Event(Event const& rhs)
+:m_type(rhs.type()),m_string(rhs.getName()),m_ptr(rhs.getVal<void*>())
+{
+    Debug() << "copy Event" << rhs << " to " << *this << ":" << this;
+}
+
+Event::Event(Event && rhs)
+:m_type(std::move(rhs.m_type)),
+ m_string(std::move(rhs.m_string)),
+ m_ptr(std::move(rhs.m_ptr))
+{
+    Debug() << "copy Event" << rhs << " to " << *this << ":" << this;
+}
+
+
+void Event::init() {
+    CPLATE;
+}
+Event::~Event(){
+    DPLATE;
 }
 
 namespace event {

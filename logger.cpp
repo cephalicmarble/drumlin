@@ -1,20 +1,26 @@
 #include "logger.h"
+#include "drumlin.h"
 
 namespace drumlin {
 
+bool debug = true;
+
+std::recursive_mutex logger::s_critical_section;
+
 logger::logger(ostream &strm):stream(strm)
 {
-
+    stream.flush();
+    strm << boost::this_thread::get_id() << "::";
 }
 
 logger::logger(logger &rhs):stream(rhs.stream)
 {
-
 }
 
 logger::~logger()
 {
     stream << endl;
+    stream.flush();
 }
 
 logger::operator ostream&()
@@ -92,6 +98,12 @@ logger &logger::operator<<(const char i)
 logger &logger::operator<<(void* ptr)
 {
     stream << " " << ptr;
+    return *this;
+}
+
+logger &logger::operator<<(const std::exception &e)
+{
+    stream << e.what();
     return *this;
 }
 

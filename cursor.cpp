@@ -183,12 +183,14 @@ void Cursor::backtrace(int n) {
 Tracer::Tracer(string _filename) :
     filename(_filename)
 {
+    APLATE;
     roll.reset(new json::value(json::empty_array));
     chain.reset(new json::value(json::empty_array));
 }
 
 Tracer::~Tracer()
 {
+    BPLATE;
 }
 
 /**

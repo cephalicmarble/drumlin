@@ -8,6 +8,8 @@
 #include "../signalhandler.h"
 #include "../thread.h"
 #include "../thread_worker.h"
+#include "../thread_accessor.h"
+#include "../terminator.h"
 #define TAOJSON
 #include "../tao_forward.h"
 #include "../../gremlin/compat.h"
@@ -19,7 +21,15 @@ class ApplicationWorker
 public:
     int argc;
     char **argv;
-    ApplicationWorker(Type _type, int _argc, char **_argv) : ThreadWorker(_type), argc(_argc), argv(_argv) {}
+    ApplicationWorker(Type _type, int _argc, char **_argv)
+    : ThreadWorker(_type), argc(_argc), argv(_argv)
+    {
+        APLATE;
+    }
+    ~ApplicationWorker()
+    {
+        BPLATE;
+    }
     virtual void writeToStream(std::ostream &stream)const {
         stream << "ApplicationWorker" << std::endl;
     }
@@ -36,7 +46,7 @@ public:
         obj->get_object().insert({std::string("ApplicationWorker"),json::from_string("report")});
     }
     virtual void work(Object *,Event *){
-        //(void)RUN_ALL_TESTS();
+        (void)RUN_ALL_TESTS();
     }
 };
 
@@ -83,7 +93,8 @@ int main(int argc, char **argv) {
     Application a;
     ::testing::InitGoogleTest(&argc, argv);
     drumlin::iapp = dynamic_cast<ApplicationBase*>(&a);
-    a.addThread(new Thread("test-worker", new ApplicationWorker(ThreadType_test, argc, argv)));
+    a.addThread(new Thread("test-worker", new ApplicationWorker(ThreadType_test, argc, argv)), false);
+    a.addThread(new Thread("terminal", new Terminator()), true);
     a.exec();
     Debug() << "returning from main";
 }

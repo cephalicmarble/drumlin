@@ -3,11 +3,13 @@
 #include <string>
 #include <sstream>
 using namespace std;
+#include "drumlin.h"
 
 namespace drumlin {
 
 byte_array::byte_array()
 {
+    APLATE;
     m_destroy = false;
     m_data = nullptr;
     m_length = 0;
@@ -15,16 +17,19 @@ byte_array::byte_array()
 
 byte_array::byte_array(byte_array &rhs)
 {
+    APLATE;
     operator=(rhs);
 }
 
 byte_array::byte_array(byte_array &&rhs)
 {
+    APLATE;
     operator=(rhs);
 }
 
 byte_array::byte_array(const void *mem,size_t length,bool takeOwnership)
 {
+    APLATE;
     m_data = const_cast<void*>(mem);
     m_length = length;
     m_destroy = takeOwnership;
@@ -32,12 +37,14 @@ byte_array::byte_array(const void *mem,size_t length,bool takeOwnership)
 
 byte_array::byte_array(const std::string &owner)
 {
+    APLATE;
     m_data = const_cast<void*>(static_cast<const void*>(owner.c_str()));
     m_length = owner.length();
 }
 
 byte_array::~byte_array()
 {
+    BPLATE;
     clear();
 }
 
@@ -137,6 +144,7 @@ void byte_array::append(const void *m_next,size_t length)
      */
 Buffer::Buffer(void*_data,gint64 _len):type(FreeBuffer)
 {
+    APLATE;
     buffers.free_buffer.len = _len;
     buffers.free_buffer.data = (char*)malloc(buffers.free_buffer.len);
     memcpy(buffers.free_buffer.data,_data,buffers.free_buffer.len);
@@ -148,6 +156,7 @@ Buffer::Buffer(void*_data,gint64 _len):type(FreeBuffer)
      */
 Buffer::Buffer(byte_array const& bytes, bool freeAfterUse):type(freeAfterUse ? FreeBuffer : TempBuffer)
 {
+    APLATE;
     buffers.free_buffer.len = bytes.length();
     if (freeAfterUse) {
         buffers.free_buffer.data = (char*)malloc(buffers.free_buffer.len);
@@ -163,6 +172,7 @@ Buffer::Buffer(byte_array const& bytes, bool freeAfterUse):type(freeAfterUse ? F
      */
 Buffer::Buffer(string const& _str):type(FreeBuffer)
 {
+    APLATE;
     const char *str(_str.c_str());
     buffers.free_buffer.len = strlen(str);
     buffers.free_buffer.data = strdup(str);
@@ -174,6 +184,7 @@ Buffer::Buffer(string const& _str):type(FreeBuffer)
      */
 Buffer::Buffer(const char *cstr):type(FreeBuffer)
 {
+    APLATE;
     buffers.free_buffer.len = strlen(cstr);
     buffers.free_buffer.data = strdup(cstr);
 }
@@ -184,6 +195,7 @@ Buffer::Buffer(const char *cstr):type(FreeBuffer)
      */
 Buffer::Buffer(const IBuffer *buffer):type(CacheBuffer)
 {
+    APLATE;
     buffers._buffer = buffer;
 }
 
@@ -192,6 +204,7 @@ Buffer::Buffer(const IBuffer *buffer):type(CacheBuffer)
      */
 Buffer::~Buffer()
 {
+    BPLATE;
     if(type == FreeBuffer){
         free(buffers.free_buffer.data);
     }

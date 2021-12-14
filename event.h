@@ -34,9 +34,7 @@ namespace drumlin {
 
 class Thread;
 
-extern bool quietEvents;
 #define quietDebug() if(!quietEvents)Debug()
-void setQuietEvents(bool keepQuiet);
 
 /**
  * @brief The Event class
@@ -56,51 +54,23 @@ public:
      * @return string
      */
     string getName()const{ return m_string; }
-    /**
-     * @brief Event : empty constructor
-     */
-    Event()
-    :m_type(0),m_string("none"),m_ptr(nullptr) {init();}
-    Event(Type _type)
-    :m_type(_type),m_string(""),m_ptr(nullptr) {init();}
-    Event(Type _type,string _string)
-    :m_type(_type),m_string(_string),m_ptr(nullptr) {init();}
-    Event(Type _type,string _string,void *_pointer)
-    :m_type(_type),m_string(_string),m_ptr(_pointer) {init();}
-    Event(Event const& rhs)
-    :m_type(rhs.type()),m_string(rhs.getName()),m_ptr(rhs.getVal<void*>()) {
-        Debug() << "copy Event" << rhs << " to " << *this << ":" << this;
-    }
-    void init() {
-        Debug() << "new Event" << *this << ":" << this;
-    }
-    /**
-     * @brief clone : used by thread event filter
-     * @return Event*
-     */
-    virtual Event *clone()
-    {
-        return new Event(type(),getName());
-    }
-    /**
-     * @brief Event::~Event
-     */
-    virtual ~Event(){
-        Debug() << "delete Event" << *this << ":" << this;
-    }
+
+    Event();
+    Event(Type _type);
+    Event(Type _type,string _string);
+    Event(Type _type,string _string,void *_pointer);
+    Event(Event const& rhs);
+    Event(Event && rhs);
+    void init();
+    virtual ~Event();
+
     friend ostream &operator <<(ostream &stream, const Event &event);
     friend logger &operator <<(logger &stream, const Event &event);
 
     template <typename T>
     T *getPointerVal() const
     {
-        T *pt(dynamic_cast<T*>(static_cast<T*>(m_ptr)));
-        if (pt == nullptr) {
-            std::stringstream ss;
-            ss << m_type << " event (" << m_string << ") fail cast to pointer:" << m_ptr;
-            throw Exception(ss);
-        }
-        return pt;
+        return dynamic_cast<T*>(static_cast<T*>(m_ptr));
     }
 
     template <typename T>

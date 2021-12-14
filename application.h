@@ -27,11 +27,11 @@ class Application :
         public ApplicationBase
 {
 public:
-    Application() : SignalHandler() {
-        Debug() << "new Application";
+    Application() : SignalHandler(gremlin::SignalType_all) {
+        APLATE;
     }
     virtual ~Application() {
-        Debug() << "delete Application";
+        BPLATE;
     }
 
     /**
@@ -39,7 +39,7 @@ public:
      * @param thread Thread*
      * @param start bool
      */
-    void addThread(Thread *thread);
+    void addThread(Thread *thread, bool startWork = false);
 
     /**
      * @brief Application::removeThread : remove a thread

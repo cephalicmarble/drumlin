@@ -9,6 +9,7 @@ using namespace std;
 #include <boost/regex.hpp>
 using namespace boost;
 #include "drumlin.h"
+#include "string_list.h"
 
 namespace drumlin {
 
@@ -30,9 +31,18 @@ public:
 
     drumlin_regex(string rx,syntax_option_type option)
         : m_rx(rx,option),cap()
-    {}
-    drumlin_regex(drumlin_regex const& rhs) = default;
-    virtual ~drumlin_regex() = default;
+    {
+        APLATE;
+    }
+    drumlin_regex(drumlin_regex const& rhs)
+    {
+        m_rx = rhs.m_rx;
+        cap = rhs.cap;
+    }
+    virtual ~drumlin_regex()
+    {
+        BPLATE;
+    }
     bool match(T haystack,match_flag_type flags = boost::regex_constants::match_default)
     {
         return boost::regex_match(haystack,cap,m_rx,flags);
@@ -69,10 +79,18 @@ struct iterate_impl
     typedef std::vector<std::pair<replacement,std::string>> captures_type;
     typedef std::function<bool(iterate_impl<Regex> &,capture_type &)> func_type;
 
-    iterate_impl() {}
+    iterate_impl()
+    {
+        APLATE;
+    }
     iterate_impl(string &haystack,Regex &rx,typename Regex::match_flag_type flags = boost::regex_constants::match_default)
         : m_haystack(haystack),m_iter(rx.make_regex_iterator(m_haystack,flags))
-    {}
+    {
+        APLATE;
+    }
+    ~iterate_impl(){
+        BPLATE;
+    }
     int operator()(func_type func = [](iterate_impl<Regex> &,capture_type &cap){ return true; })
     {
         int c = 0;
@@ -126,9 +144,25 @@ struct SRegex : public drumlin_regex<boost::smatch,boost::sregex_iterator,string
     SRegex clone()const{
         return *this;
     }
-    SRegex() : Base("",boost::regex_constants::extended) {}
-    SRegex(string rx,syntax_option_type option = boost::regex_constants::extended) : Base(rx,option) {}
-    SRegex(SRegex const& rhs) : Base(rhs){}
+    SRegex()
+    : Base("",boost::regex_constants::extended)
+    {
+        APLATE;
+    }
+    SRegex(string rx,syntax_option_type option = boost::regex_constants::extended)
+    : Base(rx,option)
+    {
+        APLATE;
+    }
+    SRegex(SRegex const& rhs)
+    : Base(rhs)
+    {
+        APLATE;
+    }
+    ~SRegex()
+    {
+        BPLATE;
+    }
     iterate_impl<SRegex> &getImpl(){ return m_impl; }
 private:
     iterate_impl<SRegex> m_impl;
@@ -160,9 +194,24 @@ struct CRegex : public drumlin_regex<boost::cmatch,boost::cregex_iterator,const 
     CRegex clone()const{
         return *this;
     }
-    CRegex() : Base("",boost::regex_constants::extended) {}
-    CRegex(string rx,syntax_option_type option = boost::regex_constants::extended) : Base(rx,option) {}
-    CRegex(CRegex const& rhs) : Base(rhs){}
+    CRegex()
+    : Base("",boost::regex_constants::extended)
+    {
+        APLATE;
+    }
+    CRegex(string rx,syntax_option_type option = boost::regex_constants::extended)
+    : Base(rx,option)
+    {
+        APLATE;
+    }
+    CRegex(CRegex const& rhs) : Base(rhs)
+    {
+        APLATE;
+    }
+    ~CRegex()
+    {
+        BPLATE;
+    }
     iterate_impl<CRegex> &getImpl(){ return m_impl; }
 private:
     iterate_impl<CRegex> m_impl;

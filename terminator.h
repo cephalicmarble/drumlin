@@ -4,19 +4,24 @@
 #include <boost/thread.hpp>
 using namespace boost;
 #include "event.h"
+#include "thread_worker.h"
 
 namespace drumlin {
 
 extern ApplicationBase *iapp;
 
 class Terminator
+    : public ThreadWorker
 {
-    bool restarting = false;
 public:
-    Terminator(bool _restarting = false):restarting(_restarting),m_thread(&Terminator::run,this){}
+    Terminator();
+    ~Terminator();
+    virtual void work(Object *,std::shared_ptr<Event>);
+    virtual bool event(std::shared_ptr<Event>);
+    virtual void shutdown(){
+        PLATE;
+    };
     void run();
-private:
-    boost::thread m_thread;
 };
 
 } // namespace drumlin

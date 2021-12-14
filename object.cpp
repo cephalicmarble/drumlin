@@ -1,13 +1,20 @@
 #include "object.h"
+#include "drumlin.h"
 
 namespace drumlin {
 
 Object::Object(Object *parent)
     :m_parent(parent)
 {
+    APLATE;
     if (nullptr != m_parent) {
         m_parent->attachChild(this);
     }
+}
+
+Object::~Object()
+{
+    BPLATE;
 }
 
 void Object::attachChild(Object *child)

@@ -21,23 +21,9 @@ namespace drumlin {
 // There can be only ONE SignalHandler per process
 SignalHandler* g_handler(nullptr);
 
-#ifdef _WIN32
-
-BOOL WINAPI WIN32_handleFunc(DWORD);
-gremlin::SignalType WIN32_physicalToLogical(DWORD);
-DWORD WIN32_logicalToPhysical(gremlin::SignalType);
-std::set<gremlin::SignalType> g_registry;
-
-#else //_WIN32
-
-void POSIX_handleFunc(int);
-gremlin::SignalType POSIX_physicalToLogical(int);
-int POSIX_logicalToPhysical(gremlin::SignalType);
-
-#endif //_WIN32
-
 SignalHandler::SignalHandler(int mask) : _mask(mask)
 {
+    APLATE;
     g_handler = this;
 
 #ifdef _WIN32
@@ -53,10 +39,17 @@ SignalHandler::SignalHandler(int mask) : _mask(mask)
             g_registry.insert(logical);
 #else
             int sig = POSIX_logicalToPhysical((gremlin::SignalType)logical);
-            bool failed = signal(sig, POSIX_handleFunc) == SIG_ERR;
-            assert(!failed);
-            (void)failed; // Silence the warning in non _DEBUG; TODO: something better
 
+            struct sigaction sa;
+
+            sa.sa_handler = &POSIX_handleFunc;
+            sigemptyset(&sa.sa_mask);
+            sa.sa_flags = SA_RESTART;
+            if (sigaction(sig, &sa, NULL) == -1)
+            {
+                Debug() << gremlin::metaEnum<SignalType>().toString((gremlin::SignalType)logical) << "failed to assign handler.";
+            }
+            //bool failed = signal(sig, POSIX_handleFunc) == SIG_ERR;
 #endif //_WIN32
         }
     }
@@ -65,10 +58,11 @@ SignalHandler::SignalHandler(int mask) : _mask(mask)
 
 SignalHandler::~SignalHandler()
 {
-    Debug() << "delete SignalHandler";
+    BPLATE;
 #ifdef _WIN32
     SetConsoleCtrlHandler(WIN32_handleFunc, FALSE);
 #else
+    return;
     for (guint8 i=0;i<numSignals;i++)
     {
         guint8 logical = 0x1 << i;

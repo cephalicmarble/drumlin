@@ -8,6 +8,7 @@
 #endif
 #include <mutex>
 using namespace std;
+#include <boost/preprocessor.hpp>
 #include <boost/thread/sync_queue.hpp>
 using namespace boost;
 #include "drumlin.h"
@@ -17,12 +18,15 @@ using namespace boost;
 
 namespace drumlin {
 
+#define THREADLOG2(a, b) {LOGLOCK;Debug() << "thread.cpp" << getName() << __func__ << a << b << this;}
+
 /**
  * @brief Thread::Thread : construct a new thread, to be Application::addThread(*,bool start)-ed
  * @param _task string name
  */
 Thread::Thread(string _task, ThreadWorker *_worker) : m_task(_task), m_worker(_worker)
 {
+    APLATE;
 }
 
 /**
@@ -30,7 +34,7 @@ Thread::Thread(string _task, ThreadWorker *_worker) : m_task(_task), m_worker(_w
  */
 Thread::~Thread()
 {
-    Debug() << __func__ << this;
+    BPLATE;
 }
 
 void Thread::terminate()
@@ -80,14 +84,13 @@ bool Thread::event(std::shared_ptr<Event> pevent)
     if(getWorker()->event(pevent)){
         return true;
     }
-    quietDebug() << this << __func__ << metaEnum<DrumlinEventType>().toString((DrumlinEventType)pevent->type());
     if((guint32)pevent->type() < (guint32)DrumlinEventEvent_first
             || (guint32)pevent->type() > (guint32)DrumlinEventEvent_last){
         return false;
     }
     if((guint32)pevent->type() > (guint32)DrumlinEventThread_first
             && (guint32)pevent->type() < (guint32)DrumlinEventThread_last){
-        quietDebug() << pevent->getName();
+        THREADLOG2(metaEnum<DrumlinEventType>().toString((DrumlinEventType)pevent->type()),pevent->getName());
         switch(pevent->type()){
         case DrumlinEventThreadWork:
         {
@@ -100,7 +103,7 @@ bool Thread::event(std::shared_ptr<Event> pevent)
             break;
         }
         default:
-            quietDebug() << metaEnum<DrumlinEventType>().toString((DrumlinEventType)pevent->type()) << __FILE__ << __func__ <<  "unimplemented";
+            THREADLOG2(metaEnum<DrumlinEventType>().toString((DrumlinEventType)pevent->type()),"unimplemented");
             return false;
         }
         return true;
@@ -122,6 +125,7 @@ void Thread::start()
  */
 void Thread::run()
 {
+    THREADLOG2("starting",boost::this_thread::get_id())
     post(event::make_event(DrumlinEventThreadWork,"work"));
     if(!m_terminated)
         exec();
@@ -144,9 +148,9 @@ void Thread::post(typename queue_type::value_type event)
 void Thread::exec()
 {
     while(!m_deleting && !m_terminated && !m_thread->interruption_requested()){
-        try{
+        queue_type::value_type pevent;
+        try {
             boost::this_thread::interruption_point();
-            queue_type::value_type pevent;
             {
                 std::lock_guard<std::recursive_mutex> l(m_critical_section);
                 if(!m_queue.empty()) {
@@ -159,7 +163,15 @@ void Thread::exec()
                     Critical() << __func__ << "not handling event" << *pevent;
             }
             boost::this_thread::yield();
-        }catch(thread_interrupted &ti){
+        } catch(thread_interrupted &ti) {
+            THREADLOG2(*pevent, "thread_interrupted");
+            break;
+        } catch(Exception const& e) {
+            THREADLOG2(*pevent, e);
+            break;
+        } catch(std::exception const& e) {
+            THREADLOG2(*pevent, e);
+            break;
         }
     }
 }

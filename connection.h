@@ -15,9 +15,10 @@ extern boost::asio::io_service io_service;
 class IOService
 {
 public:
-    IOService():m_thread(&IOService::run,this){}
-    void run(){io_service.run();}
-    void stop(){io_service.stop();}
+    IOService();
+    ~IOService();
+    void run();
+    void stop();
 private:
     boost::thread m_thread;
 };
@@ -36,13 +37,19 @@ public:
     AsioClient(boost::asio::io_service& io_service,typename resolver_type::iterator resolver_iter)
         :m_endpoint(*resolver_iter),m_socket(io_service)
     {
+        CPLATE;
         m_socket.connect(m_endpoint);
     }
     AsioClient(boost::asio::io_service& io_service,string host,int port)
         :m_endpoint(asio::ip::address::from_string(host),port),
          m_socket(io_service)
     {
+        CPLATE;
         m_socket.connect(m_endpoint);
+    }
+    ~AsioClient()
+    {
+        DPLATE;
     }
     void disconnect()
     {
@@ -89,9 +96,11 @@ public:
     Connection(handler_type *handler)
         : m_asio_socket(io_service),m_socket(io_service,0,handler,&m_asio_socket)
     {
+        CPLATE;
     }
     ~Connection()
     {
+        DPLATE;
     }
 private:
     asio_socket_type m_asio_socket;
@@ -116,6 +125,11 @@ public:
     typedef AsioServer<Server,connection_type,address_type,Protocol> server_type;
     AsioServer(string host,int port):m_addr(),m_endpoint(host.length()?m_addr.from_string(host):m_addr.any(),port),m_acceptor(acceptor_type(drumlin::io_service,m_endpoint))
     {
+        CPLATE;
+    }
+    ~AsioServer()
+    {
+        DPLATE;
     }
     void start()
     {

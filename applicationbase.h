@@ -10,6 +10,7 @@ using namespace std;
 using namespace boost;
 #include "thread.h"
 #include "status.h"
+#include "drumlin.h"
 
 namespace drumlin {
 
@@ -22,8 +23,12 @@ class ThreadAccessor;
 class ApplicationBase : public StatusProvider
 {
 public:
-    ApplicationBase(){}
-    virtual ~ApplicationBase(){}
+    ApplicationBase(){
+        APLATE;
+    }
+    virtual ~ApplicationBase(){
+        BPLATE;
+    }
     virtual void post(std::shared_ptr<Event> event)=0;
     virtual void stop()=0;
     boost::thread::id getThreadId(){ return boost::this_thread::get_id(); }

@@ -9,6 +9,8 @@ using namespace boost;
 
 namespace drumlin {
 
+extern bool debug;
+
 class logger
 {
 public:
@@ -28,7 +30,9 @@ public:
     logger &operator<<(const unsigned char i);
     logger &operator<<(const char i);
     logger &operator<<(void* ptr);
+    logger &operator<<(const std::exception &e);
     ostream &getStream();
+    static std::recursive_mutex s_critical_section;
 private:
     ostream &stream;
 };

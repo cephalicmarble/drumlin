@@ -14,11 +14,16 @@ ApplicationBase *iapp;
  * @param thread Thread*
  * @param start bool
  */
-void Application::addThread(Thread *thread)
+void Application::addThread(Thread *thread, bool startWork)
 {
     THREADSLOCK
     Debug() << __func__ << thread->getTask() << ":" << thread->getName();
     threads.push_back(thread);
+    if (startWork)
+    {
+        thread->post(event::make_event(DrumlinEventThreadWork,"grindstone"));
+    }
+    thread->start();
 }
 
 /**
@@ -53,7 +58,7 @@ void Application::post(std::shared_ptr<Event> pevent)
 int Application::exec()
 {
     std::shared_ptr<Event> pevent;
-    try{
+    try {
         while(!terminated && !boost::this_thread::interruption_requested()){
             boost::this_thread::interruption_point();
             {
@@ -64,14 +69,17 @@ int Application::exec()
                 }
             }
         }
-    }catch(thread_interrupted &ti){
-        Debug() << "thread interrupted: returning from Application::exec";
+    } catch(thread_interrupted &ti) {
+        {LOGLOCK;Debug() << "thread interrupted: returning from Application::exec";}
         shutdown();
         return 1;
-    }catch(...){
-        Debug() << "caught exception: returning from Application::exec";
-        shutdown();
+    } catch(Exception &e) {
+        {LOGLOCK;Debug() << "Exception" << e << "returning from Application::exec";}
         return 2;
+    } catch(std::exception &e) {
+        {LOGLOCK;Debug() << "std::exception" << e << "returning from Application::exec";}
+        shutdown();
+        return 3;
     }
     Debug() << "returning from Application::exec";
     return 0;
@@ -162,7 +170,11 @@ void Application::quit()
 void Application::shutdown(bool restarting)
 {
     Debug() << "Terminating...";
-    terminator = new Terminator(restarting);
+    if(!restarting){
+        post(event::make_event(DrumlinEventApplicationShutdown,"Shutdown::shutdown",(Object*)0));
+    }else{
+        post(event::make_event(DrumlinEventApplicationRestart,"Shutdown::restart",(Object*)0));
+    }
 }
 
 bool Application::handleSignal(gremlin::SignalType signal)

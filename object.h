@@ -44,7 +44,7 @@ class Object
 {
 public:
     Object(Object *parent = nullptr);
-    virtual ~Object(){}
+    virtual ~Object();
     virtual bool event(Event *){ return false; }
     Object *parent()const{return m_parent;}
 private:

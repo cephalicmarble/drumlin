@@ -62,8 +62,8 @@ public:
     Thread(string _task, ThreadWorker *_worker);
     virtual ~Thread();
     double elapsed();
-protected:
     virtual void start();
+protected:
     virtual void run();
     virtual void exec();
     virtual bool event(std::shared_ptr<Event>);

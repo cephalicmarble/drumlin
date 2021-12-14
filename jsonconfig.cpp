@@ -34,6 +34,7 @@ JsonConfig load(string path)
 
 JsonConfig::JsonConfig() : Object(0),temporaryFlag(true)
 {
+    CPLATE;
     json = fromJson("{}");
 }
 
@@ -42,6 +43,7 @@ JsonConfig::JsonConfig() : Object(0),temporaryFlag(true)
  */
 JsonConfig::JsonConfig(std::string const& path) : Object(0),temporaryFlag(false)
 {
+    CPLATE;
     json = fromFile(path);
 }
 
@@ -52,6 +54,7 @@ JsonConfig::JsonConfig(std::string const& path) : Object(0),temporaryFlag(false)
 JsonConfig::JsonConfig(const JsonConfig &rhs) :
     Object(0),json(rhs.json),temporaryFlag(rhs.temporaryFlag)
 {
+    CPLATE;
 }
 
 /**
@@ -59,6 +62,7 @@ JsonConfig::JsonConfig(const JsonConfig &rhs) :
  */
 JsonConfig::~JsonConfig()
 {
+    DPLATE;
     if(temporaryFlag){
         delete json;
     }
@@ -229,6 +233,7 @@ logger &operator<<(logger &stream,const JsonConfig &rel)
 
 json_map_clearer::~json_map_clearer()
 {
+    BPLATE;
     for(json_map_type::value_type & pair : JsonConfig::s_jsons){
         delete pair.second;
     }
