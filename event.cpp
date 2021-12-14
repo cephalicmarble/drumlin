@@ -27,45 +27,7 @@ logger &operator <<(logger &stream, const Event &event)
     return stream;
 }
 
-/**
- * @brief Event::send : send the event to a thread queue
- * @param thread Thread*
- */
-void Event::send(Thread *target)const
-{
-    target->post(const_cast<Event*>(this));
-}
-
-/**
- * @brief Event::punt : punt the event to the application queue
- */
-void Event::punt()const
-{
-    drumlin::iapp->post(const_cast<Event*>(this));
-}
-
-/**
- * @brief Event::send : send the event to a thread queue
- * @param thread Thread*
- */
-void Event::post() const
-{
-    Object *receiver(getPointerVal<Object>());
-    ThreadWorker *worker(dynamic_cast<ThreadWorker*>(receiver));
-    if(worker){
-        ThreadAccessor access;
-        access.getWorkered(worker);
-        if(access.selectionEmpty()) {
-            Debug() << "no thread for " << worker->getType();
-        }else{
-            Debug() << "sending" << getName() << "to" << access.first()->getName();
-        }
-        access(SendEvent(const_cast<Event*>(this)));
-    }else{
-        Debug() << "sending" << getName() << "to" << drumlin::iapp->getThreadId();
-        drumlin::iapp->post(const_cast<Event*>(static_cast<const Event*>(this)));
-    }
-}
+namespace event {
 
 /**
  * @brief event_cast : used to stash something in an event for sending to eventFilter
@@ -73,9 +35,49 @@ void Event::post() const
  * @param error const char*
  * @param that T*
  */
-const Event *make_event(Event::Type _type,const char *error,void *that)
+std::shared_ptr<Event> make_event(Event::Type _type,const char *name,void *that)
 {
-    return new Event(_type,error,that);
+    return std::shared_ptr<Event>(new Event(_type,name,that));
 }
+
+std::shared_ptr<Event> make_event(Event::Type _type,std::string const& name,void *that)
+{
+    return std::shared_ptr<Event>(new Event(_type,name.c_str(),that));
+}
+
+/**
+ * @brief Event::punt : punt the event to the application queue
+ */
+void punt(std::shared_ptr<Event> event)
+{
+    drumlin::iapp->post(event);
+}
+
+/**
+ * @brief Event::send : send the event to a thread queue
+ * @param thread Thread*
+ */
+void send(Thread *target, std::shared_ptr<Event> event)
+{
+    target->post(event);
+}
+
+/**
+ * @brief Event::send : send the event to a thread queue
+ * @param thread Thread*
+ */
+void post(ThreadWorker *worker, std::shared_ptr<Event> event)
+{
+    ThreadAccessor access;
+    access.getWorkered(worker);
+    if(access.selectionEmpty()) {
+        Debug() << "no thread for " << worker->getType();
+        return;
+    }
+    Debug() << "sending" << *event << "to" << access.first()->getName();
+    access(SendEvent(event));
+}
+
+} // namespace Event
 
 } // namespace drumlin

@@ -1,6 +1,7 @@
 #ifndef EVENT_H
 #define EVENT_H
 
+#include <memory>
 #include <string>
 #include <functional>
 using namespace std;
@@ -59,13 +60,20 @@ public:
      * @brief Event : empty constructor
      */
     Event()
-    :m_type(0),m_string("none"),m_ptr(nullptr) {}
+    :m_type(0),m_string("none"),m_ptr(nullptr) {init();}
     Event(Type _type)
-    :m_type(_type),m_string(""),m_ptr(nullptr) {}
+    :m_type(_type),m_string(""),m_ptr(nullptr) {init();}
     Event(Type _type,string _string)
-    :m_type(_type),m_string(_string),m_ptr(nullptr) {}
+    :m_type(_type),m_string(_string),m_ptr(nullptr) {init();}
     Event(Type _type,string _string,void *_pointer)
-    :m_type(_type),m_string(_string),m_ptr(_pointer) {}
+    :m_type(_type),m_string(_string),m_ptr(_pointer) {init();}
+    Event(Event const& rhs)
+    :m_type(rhs.type()),m_string(rhs.getName()),m_ptr(rhs.getVal<void*>()) {
+        Debug() << "copy Event" << rhs << " to " << *this << ":" << this;
+    }
+    void init() {
+        Debug() << "new Event" << *this << ":" << this;
+    }
     /**
      * @brief clone : used by thread event filter
      * @return Event*
@@ -77,11 +85,11 @@ public:
     /**
      * @brief Event::~Event
      */
-    virtual ~Event(){}
+    virtual ~Event(){
+        Debug() << "delete Event" << *this << ":" << this;
+    }
     friend ostream &operator <<(ostream &stream, const Event &event);
     friend logger &operator <<(logger &stream, const Event &event);
-    void punt()const;
-    void send(Thread *target)const;
 
     template <typename T>
     T *getPointerVal() const
@@ -100,19 +108,24 @@ public:
     {
         return static_cast<T>(m_ptr);
     }
-
-    /**
-     * @brief Event::send : send the event to a thread queue
-     * @param thread Thread*
-     */
-    void post()const;
 private:
     Type m_type;
     string m_string;
     void *m_ptr;
 };
 
-const Event *make_event(Event::Type _type,const char *error,void *that = 0);
+namespace event {
+
+std::shared_ptr<Event> make_event(Event::Type _type,const char *error,void *that = 0);
+std::shared_ptr<Event> make_event(Event::Type _type,std::string const&,void *that = 0);
+
+void punt(std::shared_ptr<Event>);
+
+void send(Thread *target, std::shared_ptr<Event>);
+
+void post(ThreadWorker *worker, std::shared_ptr<Event> event);
+
+}
 
 } // namespace drumlin
 

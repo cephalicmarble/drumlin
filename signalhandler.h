@@ -1,6 +1,33 @@
 #ifndef SIGNALHANDLER_H
 #define SIGNALHANDLER_H
 
+#include <string>
+#include "metatypes.h"
+#include "gtypes.h"
+
+#define ST_NOOP
+#define ST_INT
+#define ST_TERM
+#define ST_CLOSE
+#define ST_RELOAD
+#define ST_SEGV
+#define ST_LAST
+
+#define SignalTypes ( \
+    (SignalType_first)(-1), \
+    (SignalType_unhandled)(0), \
+    (SignalType_noop)(1), \
+    (SignalType_int)(2), \
+    (SignalType_term)(4), \
+    (SignalType_close)(8), \
+    (SignalType_reload)(16), \
+    (SignalType_segv)(32), \
+    (SignalType_last)(33) \
+)
+ENUMN(SignalType,SignalTypes)
+
+#define DEFAULT_SIGNALS ((int)gremlin::SignalType_int | (int)gremlin::SignalType_term | (int)gremlin::SignalType_close)
+
 namespace drumlin {
 
 class SignalHandler
@@ -8,21 +35,9 @@ class SignalHandler
 public:
     SignalHandler(int mask = DEFAULT_SIGNALS);
     virtual ~SignalHandler();
+    static const int numSignals = 5;
 
-    enum SIGNALS
-    {
-        SIG_UNHANDLED   = 0,    // Physical signal not supported by this class
-        SIG_NOOP        = 1,    // The application is requested to do a no-op (only a target that platform-specific signals map to when they can't be raised anyway)
-        SIG_INT         = 2,    // Control+C (should terminate but consider that it's a normal way to do so; can delay a bit)
-        SIG_TERM        = 4,    // Control+Break (should terminate now without regarding the consquences)
-        SIG_CLOSE       = 8,    // Container window closed (should perform normal termination, like Ctrl^C) [Windows only; on Linux it maps to SIG_TERM]
-        SIG_RELOAD      = 16,   // Reload the configuration [Linux only, physical signal is SIGHUP; on Windows it maps to SIG_NOOP]
-        SIG_SEGV        = 32,
-        DEFAULT_SIGNALS = SIG_INT | SIG_TERM | SIG_CLOSE,
-    };
-    static const int numSignals = 7;
-
-    virtual bool handleSignal(int signal);
+    virtual bool handleSignal(gremlin::SignalType signal);
 
 private:
     int _mask;

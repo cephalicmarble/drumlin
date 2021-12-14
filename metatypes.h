@@ -23,7 +23,7 @@ template <typename Identifier = void> typename enum_traits<Identifier>::meta_typ
                 default: return ""; \
             } \
         } \
-        Identifier toEnum(string s,bool *ok) { \
+        Identifier toEnum(std::string s,bool *ok) { \
             if(false) {*ok = false;return (Identifier)0; } \
             BOOST_PP_LIST_FOR_EACH(STRING_TO_ENUM,Identifier, \
                 BOOST_PP_TUPLE_TO_LIST(BOOST_PP_TUPLE_SIZE(Tuple),Tuple) \
@@ -35,6 +35,33 @@ template <typename Identifier = void> typename enum_traits<Identifier>::meta_typ
     template <Identifier> typename enum_traits<Identifier>::meta_type metaEnum(){ return typename enum_traits<Identifier>::meta_type(); } \
   } // namespace gremlin
 
+#define ENUMN_ELEM(r,data,elem) ,BOOST_PP_SEQ_ELEM(0,elem) = BOOST_PP_SEQ_ELEM(1,elem)
+#define ENUMN_TO_STRING_CASE(r,data,elem) case data:: BOOST_PP_SEQ_ELEM(0,elem): return BOOST_PP_STRINGIZE(BOOST_PP_SEQ_ELEM(0,elem));
+#define STRING_TO_ENUMN(r,data,elem) else if(s==BOOST_PP_STRINGIZE(BOOST_PP_SEQ_ELEM(0,elem))) {*ok = true;return (data)BOOST_PP_SEQ_ELEM(1,elem);}
+#define ENUMN(Identifier,Tuple) \
+namespace gremlin { \
+  typedef enum { Identifier##Unknown BOOST_PP_LIST_FOR_EACH(ENUMN_ELEM,,BOOST_PP_TUPLE_TO_LIST(BOOST_PP_TUPLE_SIZE(Tuple),Tuple)) } Identifier; \
+  struct meta##Identifier { \
+      typedef Identifier enum_type; \
+      std::string toString(Identifier e) { \
+          switch(e) { \
+              BOOST_PP_LIST_FOR_EACH(ENUMN_TO_STRING_CASE,Identifier, \
+                  BOOST_PP_TUPLE_TO_LIST(BOOST_PP_TUPLE_SIZE(Tuple),Tuple) \
+              ) \
+              default: return ""; \
+          } \
+      } \
+      Identifier toEnum(std::string s,bool *ok) { \
+          if(false) {*ok = false;return (Identifier)0; } \
+          BOOST_PP_LIST_FOR_EACH(STRING_TO_ENUMN,Identifier, \
+              BOOST_PP_TUPLE_TO_LIST(BOOST_PP_TUPLE_SIZE(Tuple),Tuple) \
+          ) \
+          else { *ok = false; return (Identifier)0; } \
+      } \
+  }; \
+  template <> struct enum_traits<Identifier> { typedef meta##Identifier meta_type; }; \
+  template <Identifier> typename enum_traits<Identifier>::meta_type metaEnum(){ return typename enum_traits<Identifier>::meta_type(); } \
+  } // namespace gremlin
 
 #define ENUMI_TO_STRING_CASE(r,data,elem) case data(data##elem): return #data#elem;
 #define STRING_TO_ENUMI(r,data,elem) else if(s==#data#elem) {*ok = true;return data(data##elem);}
@@ -52,35 +79,9 @@ template <typename Identifier = void> typename enum_traits<Identifier>::meta_typ
                 default: return ""; \
             } \
         } \
-        Identifier toEnum(string s,bool *ok) { \
+        Identifier toEnum(std::string s,bool *ok) { \
             if(false) {*ok = false;return (Identifier)0; } \
             BOOST_PP_LIST_FOR_EACH(STRING_TO_ENUMI,Identifier, \
-                BOOST_PP_TUPLE_TO_LIST(BOOST_PP_TUPLE_SIZE(Tuple),Tuple) \
-            ) \
-            else { *ok = false; return (Identifier)0; } \
-        } \
-    }; \
-    template <> struct enum_traits<Identifier> { typedef meta##Identifier meta_type; }; \
-    template <Identifier> typename enum_traits<Identifier>::meta_type metaEnum(){ return typename enum_traits<Identifier>::meta_type(); } \
-  } // namespace gremlin
-
-#define ENUM_ELEM(r,data,elem) BOOST_PP_SEQ_ELEM(0,elem) BOOST_PP_SEQ_ELEM(1,elem)
-#define ENUMN(Identifier,Tuple) \
-  namespace gremlin { \
-    typedef enum { BOOST_PP_LIST_FOR_EACH(ENUM_ELEM,,BOOST_PP_TUPLE_TO_LIST(BOOST_PP_TUPLE_SIZE(Tuple),Tuple)) } Identifier; \
-    struct meta##Identifier { \
-        typedef Identifier enum_type; \
-        std::string toString(Identifier e) { \
-            switch(e) { \
-                BOOST_PP_LIST_FOR_EACH(ENUM_TO_STRING_CASE,Identifier, \
-                    BOOST_PP_TUPLE_TO_LIST(BOOST_PP_TUPLE_SIZE(Tuple),Tuple) \
-                ) \
-                default: return ""; \
-            } \
-        } \
-        Identifier toEnum(string s,bool *ok) { \
-            if(false) {*ok = false;return (Identifier)0; } \
-            BOOST_PP_LIST_FOR_EACH(STRING_TO_ENUM,Identifier, \
                 BOOST_PP_TUPLE_TO_LIST(BOOST_PP_TUPLE_SIZE(Tuple),Tuple) \
             ) \
             else { *ok = false; return (Identifier)0; } \

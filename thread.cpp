@@ -31,11 +31,6 @@ Thread::Thread(string _task, ThreadWorker *_worker) : m_task(_task), m_worker(_w
 Thread::~Thread()
 {
     Debug() << __func__ << this;
-    m_deleting = true;
-    if(!m_terminated) quit();
-    if(!m_ready)
-        return;
-    m_worker.reset();
 }
 
 void Thread::terminate()
@@ -78,9 +73,9 @@ string Thread::getName()
  * @param event Event*
  * @return bool
  */
-bool Thread::event(Event *pevent)
+bool Thread::event(std::shared_ptr<Event> pevent)
 {
-    if(!pevent)
+    if(!pevent.get())
         return false;
     if(getWorker()->event(pevent)){
         return true;
@@ -127,7 +122,7 @@ void Thread::start()
  */
 void Thread::run()
 {
-    make_event(DrumlinEventThreadWork,"work")->send(this);
+    post(event::make_event(DrumlinEventThreadWork,"work"));
     if(!m_terminated)
         exec();
     if(getWorker()){
@@ -137,10 +132,10 @@ void Thread::run()
         terminate();
     }
     m_ready = false;
-    make_event(DrumlinEventThreadRemove,"removeThread",this)->punt();
+    event::punt(event::make_event(DrumlinEventThreadRemove,"removeThread",this));
 }
 
-void Thread::post(Event *event)
+void Thread::post(typename queue_type::value_type event)
 {
     std::lock_guard<std::recursive_mutex> l(m_critical_section);
     m_queue.push(event);
@@ -151,7 +146,7 @@ void Thread::exec()
     while(!m_deleting && !m_terminated && !m_thread->interruption_requested()){
         try{
             boost::this_thread::interruption_point();
-            queue_type::value_type pevent(nullptr);
+            queue_type::value_type pevent;
             {
                 std::lock_guard<std::recursive_mutex> l(m_critical_section);
                 if(!m_queue.empty()) {
@@ -159,12 +154,9 @@ void Thread::exec()
                     m_queue.pop();
                 }
             }
-            if(pevent != nullptr) {
-                if(event(pevent)){
-                    delete pevent;
-                }else{
-                    Critical() << __func__ << "leaking event" << *pevent;
-                }
+            if(!!pevent) {
+                if(!event(pevent))
+                    Critical() << __func__ << "not handling event" << *pevent;
             }
             boost::this_thread::yield();
         }catch(thread_interrupted &ti){

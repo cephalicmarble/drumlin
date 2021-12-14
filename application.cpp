@@ -1,6 +1,7 @@
 #include "application.h"
 
 #include <boost/thread.hpp>
+#include <boost/lexical_cast.hpp>
 using namespace boost;
 #include "cursor.h"
 
@@ -24,50 +25,55 @@ void Application::addThread(Thread *thread)
  * @brief Application::removeThread : remove a thread
  * @param _thread Thread*
  */
-void Application::removeThread(Thread *thread,bool noDelete)
+void Application::removeThread(Thread *thread)
 {
     THREADSLOCK
     Debug() << __func__ << thread->getTask();
+    if (thread->isStarted() && !thread->isTerminated()) {
+        std::stringstream ss;
+        ss << "thread (" << thread->getName() << ") not terminated." << std::endl;
+        throw Exception(ss);
+    }
     (void)std::remove(threads.begin(), threads.end(), thread);
     delete thread;
     if(0==std::distance(threads.begin(),threads.end())){
-        make_event(DrumlinEventApplicationThreadsGone,"threadsGone",(Object*)0)->punt();
+        post(event::make_event(DrumlinEventApplicationThreadsGone,"threadsGone",(Object*)0));
     }
 }
 
-void Application::post(Event *pevent)
+void Application::post(std::shared_ptr<Event> pevent)
 {
-    if(terminated){
-        if(event(pevent))
-            delete pevent;
-    }else{
+    if(terminated) {
+        event(pevent);
+    } else {
         m_queue << pevent;
     }
 }
 
 int Application::exec()
 {
-    Event *pevent;
+    std::shared_ptr<Event> pevent;
     try{
         while(!terminated && !boost::this_thread::interruption_requested()){
             boost::this_thread::interruption_point();
             {
                 boost::this_thread::disable_interruption di;
                 m_queue.wait_pull(pevent);
-                if(event(pevent)){
-                    delete pevent;
-                }else{
-                    Critical() << __func__ << "leaking event" << *pevent;
+                if(!event(pevent)){
+                    Critical() << __func__ << "unhandled event" << *pevent;
                 }
             }
         }
     }catch(thread_interrupted &ti){
+        Debug() << "thread interrupted: returning from Application::exec";
         shutdown();
         return 1;
     }catch(...){
+        Debug() << "caught exception: returning from Application::exec";
         shutdown();
         return 2;
     }
+    Debug() << "returning from Application::exec";
     return 0;
 }
 /**
@@ -76,7 +82,7 @@ int Application::exec()
  * @param event Event*
  * @return bool
  */
-bool Application::event(Event *pevent)
+bool Application::event(std::shared_ptr<Event> const& pevent)
 {
     try{
         if((guint32)pevent->type() < (guint32)DrumlinEventEvent_first
@@ -103,7 +109,7 @@ bool Application::event(Event *pevent)
         {
             Tracer::endTrace();
             if(terminator){
-                post(new Event(DrumlinEventApplicationShutdown));
+                post(event::make_event(DrumlinEventApplicationShutdown, "threads-gone"));
             }
             break;
         }
@@ -159,12 +165,14 @@ void Application::shutdown(bool restarting)
     terminator = new Terminator(restarting);
 }
 
-bool Application::handleSignal(int signal)
+bool Application::handleSignal(gremlin::SignalType signal)
 {
     if(Tracer::tracer!=nullptr){
         Tracer::endTrace();
     }
-    make_event(DrumlinEventApplicationShutdown,"Signal::shutdown",(Object*)(gint64)signal)->punt();
+    Debug() << "punt DrumlinEventApplicationShutdown";
+    event::punt(event::make_event(DrumlinEventApplicationShutdown,
+        gremlin::metaEnum<SignalType>().toString(signal),(Object*)(gint64)signal));
     return true;
 }
 

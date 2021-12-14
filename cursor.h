@@ -36,8 +36,8 @@ public:
     static const char *EndOfTrace;
 private:
     string filename;
-    json::value *roll;
-    json::value *chain;
+    std::unique_ptr<json::value> roll;
+    std::unique_ptr<json::value> chain;
 public:
     Tracer(string _filename);
     ~Tracer();

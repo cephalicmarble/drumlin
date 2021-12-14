@@ -34,7 +34,7 @@ class Server;
  */
 class Thread
 {
-    typedef queue<Event*> queue_type;
+    typedef std::queue<std::shared_ptr<Event>> queue_type;
 public:
     bool isTerminated(){ return m_terminated; }
     void terminate();
@@ -66,10 +66,10 @@ protected:
     virtual void start();
     virtual void run();
     virtual void exec();
-    virtual bool event(Event *);
+    virtual bool event(std::shared_ptr<Event>);
 public:
     virtual void quit();
-    void post(Event *);
+    virtual void post(typename queue_type::value_type event);
     operator const char*()const;
     friend logger &operator<<(logger &stream,const Thread &rel);
     friend class ThreadWorker;
@@ -86,12 +86,12 @@ public:
     }
 private:
     queue_type m_queue;
+    string m_task;
     std::shared_ptr<ThreadWorker> m_worker;
     bool m_ready = false;
     bool m_deleting = false;
     bool m_terminated = false;
     std::unique_ptr<boost::thread> m_thread;
-    string m_task;
     static std::recursive_mutex m_critical_section;
 };
 

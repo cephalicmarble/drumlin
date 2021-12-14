@@ -18,7 +18,7 @@ struct SendEvent
     : public ThreadAccessFunctor
 {
     std::shared_ptr<Event> m_event;
-    SendEvent(Event* event);
+    SendEvent(std::shared_ptr<Event> pevent);
     void operator()(Thread *_thread) const;
 };
 

@@ -12,115 +12,25 @@ namespace drumlin {
 class logger
 {
 public:
-    logger(ostream &strm):stream(strm){}
-    ~logger(){
-        stream << endl;
-    }
-    logger(logger &rhs):stream(rhs.stream),once(rhs.once){}
-    operator ostream&()
-    {
-        return stream;
-    }
-    logger &operator<<(const boost::thread::id &id)
-    {
-        if(!once)
-            stream << " ";
-        stream << id;
-        once = false;
-        return *this;
-    }
-    logger &operator<<(const string & str)
-    {
-        if(!once)
-            stream << " ";
-        stream << str;
-        once = false;
-        return *this;
-    }
-    logger &operator<<(const char *str)
-    {
-        if(!once)
-            stream << " ";
-        stream << str;
-        once = false;
-        return *this;
-    }
-    logger &operator<<(const unsigned long int i)
-    {
-        if(!once)
-            stream << " ";
-        stream << i;
-        once = false;
-        return *this;
-    }
-    logger &operator<<(const long int i)
-    {
-        if(!once)
-            stream << " ";
-        stream << i;
-        once = false;
-        return *this;
-    }
-    logger &operator<<(const unsigned int i)
-    {
-        if(!once)
-            stream << " ";
-        stream << i;
-        once = false;
-        return *this;
-    }
-    logger &operator<<(const int i)
-    {
-        if(!once)
-            stream << " ";
-        stream << i;
-        once = false;
-        return *this;
-    }
-    logger &operator<<(const unsigned short int i)
-    {
-        if(!once)
-            stream << " ";
-        stream << i;
-        once = false;
-        return *this;
-    }
-    logger &operator<<(const short int i)
-    {
-        if(!once)
-            stream << " ";
-        stream << i;
-        once = false;
-        return *this;
-    }
-    logger &operator<<(const unsigned char i)
-    {
-        if(!once)
-            stream << " ";
-        stream << i;
-        once = false;
-        return *this;
-    }
-    logger &operator<<(const char i)
-    {
-        if(!once)
-            stream << " ";
-        stream << i;
-        once = false;
-        return *this;
-    }
-    logger &operator<<(void* ptr)
-    {
-        if(!once)
-            stream << " ";
-        stream << ptr;
-        once = false;
-        return *this;
-    }
-    ostream &getStream(){return stream;}
+    logger(ostream &strm);
+    logger(logger &rhs);
+    ~logger();
+    operator ostream&();
+    logger &operator<<(const boost::thread::id &id);
+    logger &operator<<(const string & str);
+    logger &operator<<(const char *str);
+    logger &operator<<(const unsigned long int i);
+    logger &operator<<(const long int i);
+    logger &operator<<(const unsigned int i);
+    logger &operator<<(const int i);
+    logger &operator<<(const unsigned short int i);
+    logger &operator<<(const short int i);
+    logger &operator<<(const unsigned char i);
+    logger &operator<<(const char i);
+    logger &operator<<(void* ptr);
+    ostream &getStream();
 private:
     ostream &stream;
-    bool once = true;
 };
 
 } // namespace drumlin

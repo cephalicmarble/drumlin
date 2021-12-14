@@ -24,11 +24,15 @@ class ThreadsAccessor;
 
 class Application :
         public SignalHandler,
-        protected ApplicationBase
+        public ApplicationBase
 {
 public:
-    Application() {;}
-    virtual ~Application() {;}
+    Application() : SignalHandler() {
+        Debug() << "new Application";
+    }
+    virtual ~Application() {
+        Debug() << "delete Application";
+    }
 
     /**
      * @brief Application::addThread : optionally start a thread as it is added
@@ -41,9 +45,9 @@ public:
      * @brief Application::removeThread : remove a thread
      * @param _thread Thread*
      */
-    void removeThread(Thread *thread,bool noDelete = false);
+    void removeThread(Thread *thread);
 
-    void post(Event *pevent);
+    virtual void post(std::shared_ptr<Event> event);
 
     int exec();
     /**
@@ -52,20 +56,20 @@ public:
      * @param event Event*
      * @return bool
      */
-    virtual bool event(Event *pevent);
+    virtual bool event(std::shared_ptr<Event> const& pevent);
     /**
      * @brief Application::stop : stop the server
      */
     virtual void stop();
     void quit();
     void shutdown(bool restarting = false);
-    bool handleSignal(int signal);
+    bool handleSignal(gremlin::SignalType signal);
 protected:
     Terminator *terminator = nullptr;
 private:
     threads_type m_threads;
     bool terminated = false;
-    boost::concurrent::sync_queue<Event*> m_queue;
+    boost::concurrent::sync_queue<std::shared_ptr<Event>> m_queue;
 
     friend class ThreadsAccessor;
 };

@@ -2,12 +2,12 @@
 
 #include <algorithm>
 
-SendEvent::SendEvent(Event* event) {
-    m_event.reset(event);
+SendEvent::SendEvent(std::shared_ptr<Event> pevent) : m_event(pevent) {
+    ;
 }
 
 void SendEvent::operator()(Thread *_thread) const {
-    _thread->post(m_event.get());
+    event::send(_thread, m_event);
 }
 
 /**

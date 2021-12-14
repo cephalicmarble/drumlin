@@ -5,6 +5,7 @@
 
 #include "../main_tao.hpp"
 #include "../application.h"
+#include "../signalhandler.h"
 #include "../thread.h"
 #include "../thread_worker.h"
 #define TAOJSON
@@ -38,9 +39,6 @@ public:
         //(void)RUN_ALL_TESTS();
     }
 };
-
-Application a;
-
 
 class ApplicationTest : public ::testing::Test {
 protected:
@@ -82,7 +80,10 @@ TEST_F(ApplicationTest, ThreadDoesWork) {
 } // namespace drumlin
 
 int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  a.addThread(new Thread("test-worker", new ApplicationWorker(ThreadType_test, argc, argv)));
-  a.exec();
+    Application a;
+    ::testing::InitGoogleTest(&argc, argv);
+    drumlin::iapp = dynamic_cast<ApplicationBase*>(&a);
+    a.addThread(new Thread("test-worker", new ApplicationWorker(ThreadType_test, argc, argv)));
+    a.exec();
+    Debug() << "returning from main";
 }
