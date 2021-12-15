@@ -13,14 +13,13 @@ extern ApplicationBase *iapp;
 class Terminator
     : public ThreadWorker
 {
+    bool m_terminated = false;
 public:
     Terminator();
     ~Terminator();
     virtual void work(Object *,std::shared_ptr<Event>);
     virtual bool event(std::shared_ptr<Event>);
-    virtual void shutdown(){
-        PLATE;
-    };
+    virtual void shutdown();
     void run();
 };
 

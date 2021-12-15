@@ -22,14 +22,26 @@ struct SendEvent
     void operator()(Thread *_thread) const;
 };
 
+struct StartThread
+    : public ThreadAccessFunctor
+{
+    StartThread();
+    void operator()(Thread *_thread) const;
+};
+
 class ThreadAccessor {
     threads_type namedThreads;
     threads_type typedThreads;
     bool flagAllName;
     bool flagAllType;
+    std::string m_name;
+    std::string m_type;
+    ThreadWorker const* m_worker;
     threads_type selection;
+    std::lock_guard<std::recursive_mutex> m_mutex_lock;
 public:
-    ThreadAccessor() : flagAllName(false), flagAllType(false) {;}
+    ThreadAccessor();
+    ThreadAccessor& clear();
     void allNames(bool b) { flagAllName = b; }
     void allTypes(bool b) { flagAllType = b; }
     /**
@@ -37,40 +49,40 @@ public:
      * @param name string maybe "all"
      * @return bool !empty
      */
-    bool named(const string &name);
+    ThreadAccessor& named(const string &name);
     /**
      * @brief ThreadAccessor::typed : find threads of type or "all"
      * @param type ThreadWorker::ThreadType maybe "all"
      * @return bool !empty
      */
-    bool typed(ThreadWorker::Type type);
+    ThreadAccessor& typed(ThreadWorker::Type type);
     /**
      * @brief ThreadAccessor::selectBoth : intersect named and typed
      * @return bool !empty
      */
-    bool selectBoth();
+    ThreadAccessor& selectBoth();
     /**
      * @brief ThreadAccessor::selectNamed : get Named threads
      * @return bool !empty
      */
-    bool getNamed();
+    ThreadAccessor& getNamed();
     /**
      * @brief ThreadAccessor::selectTyped : get Typed threads
      * @return bool !empty
      */
-    bool getTyped();
+    ThreadAccessor& getTyped();
     /**
      * @brief ThreadAccessor::selectWorked : get thread for ThreadWorker
      * @return bool !empty
      */
-    bool getWorkered(ThreadWorker const*);
+    ThreadAccessor& getWorkered(ThreadWorker const*);
 
     /**
      * @brief ThreadAccessor::operator() : apply a ThreadAccessFunctor to selection
      * @param ThreadAccessFunctor const&
      * @return bool !empty
      */
-    void operator()(ThreadAccessFunctor const& functor);
+    void operator()(ThreadAccessFunctor const& functor, bool throwIfEmpty = true);
 
     /**
      * @return bool !empty

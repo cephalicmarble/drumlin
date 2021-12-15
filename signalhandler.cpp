@@ -47,7 +47,7 @@ SignalHandler::SignalHandler(int mask) : _mask(mask)
             sa.sa_flags = SA_RESTART;
             if (sigaction(sig, &sa, NULL) == -1)
             {
-                Debug() << gremlin::metaEnum<SignalType>().toString((gremlin::SignalType)logical) << "failed to assign handler.";
+                {LOGLOCK;Debug() << gremlin::metaEnum<SignalType>().toString((gremlin::SignalType)logical) << "failed to assign handler.";}
             }
             //bool failed = signal(sig, POSIX_handleFunc) == SIG_ERR;
 #endif //_WIN32

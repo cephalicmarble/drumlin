@@ -39,8 +39,8 @@ public:
     virtual void getStatus(json::value *status)const;
     friend class ThreadAccessor;
 protected:
-    std::mutex m_critical_section;
-    threads_type threads;
+    std::recursive_mutex m_critical_section;
+    threads_type m_threads;
 };
 
 extern ApplicationBase *iapp;

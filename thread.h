@@ -27,8 +27,6 @@ class ThreadWorker;
 class Event;
 class Server;
 
-#define CRITICAL std::lock_guard<std::recursive_mutex> l(const_cast<std::recursive_mutex&>(m_critical_section));
-
 /**
  * @brief The Thread class
  */
@@ -36,24 +34,13 @@ class Thread
 {
     typedef std::queue<std::shared_ptr<Event>> queue_type;
 public:
-    bool isTerminated(){ return m_terminated; }
+    bool isTerminated()const{ return m_terminated; }
     void terminate();
-    /**
-     * @brief  getBoostThread
-     * @return const& boost::thread
-     */
-    boost::thread const& getBoostThread()const{ CRITICAL return *m_thread; }
-    /**
-     * @brief getWorker
-     * @return ThreadWorker*
-     */
-    std::shared_ptr<ThreadWorker> getWorker()const{ CRITICAL return m_worker; }
-    /**
-     * @brief isStarted
-     * @return bool
-     */
-    bool isStarted()const{ return m_ready; }
-    string getName();
+    boost::thread const& getBoostThread()const;
+    std::shared_ptr<ThreadWorker> getWorker()const;
+    bool hasWorker()const;
+    bool isStarted()const;
+    string getType()const;
     /**
      * @brief getTask
      * @return string
@@ -71,19 +58,8 @@ public:
     virtual void quit();
     virtual void post(typename queue_type::value_type event);
     operator const char*()const;
-    friend logger &operator<<(logger &stream,const Thread &rel);
     friend class ThreadWorker;
-    void wait(gint64 millis = -1){
-        if (!m_thread) {
-          return;
-        }
-        if(!m_thread->joinable())
-            return;
-        if(millis<0)
-            m_thread->join();
-        else
-            m_thread->try_join_for(boost::chrono::milliseconds(millis));
-    }
+    void wait(gint64 millis = -1);
 private:
     queue_type m_queue;
     string m_task;
@@ -93,7 +69,11 @@ private:
     bool m_terminated = false;
     std::unique_ptr<boost::thread> m_thread;
     static std::recursive_mutex m_critical_section;
+
+    friend std::ostream &operator <<(std::ostream &stream, const Thread &e);
 };
+
+extern std::ostream &operator <<(std::ostream &stream, const Thread &e);
 
 } // namespace drumlin
 

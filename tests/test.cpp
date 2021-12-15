@@ -34,19 +34,32 @@ public:
         stream << "ApplicationWorker" << std::endl;
     }
     virtual void writeToObject(json::value *obj)const {
-        obj->get_object().insert({std::string("ApplicationWorker"),json::from_string("writeToObject")});
+        obj->get_object().insert({std::string("ApplicationWorker"),std::string("writeToObject")});
     }
     virtual void getStatus(json::value *obj)const{
-        obj->get_object().insert({std::string("ApplicationWorker"),json::from_string("getStatus")});
+        obj->get_object().insert({std::string("ApplicationWorker"),std::string("getStatus")});
     }
     virtual void shutdown() {
-        ;
+        signalTermination();
     }
     virtual void report(json::value *obj/*,ReportType type*/)const {
-        obj->get_object().insert({std::string("ApplicationWorker"),json::from_string("report")});
+        obj->get_object().insert({std::string("ApplicationWorker"),std::string("report")});
     }
-    virtual void work(Object *,Event *){
-        (void)RUN_ALL_TESTS();
+    virtual void work(Object *,Event *pevent){
+        if (pevent->getName() == "run-tests") {
+            ThreadAccessor access;
+            access.named("terminal");
+            access.getNamed();
+            if(0 == RUN_ALL_TESTS()) {
+                access(SendEvent(event::make_event(DrumlinEventThreadNotify, "test-success")));
+            }else{
+                access(SendEvent(event::make_event(DrumlinEventThreadNotify, "test-failure")));
+            }
+        }
+    }
+    virtual bool event(std::shared_ptr<Event>)
+    {
+        return false;
     }
 };
 
@@ -74,6 +87,7 @@ protected:
 
 // Tests that the Foo::Bar() method does Abc.
 TEST_F(ApplicationTest, ThreadDoesWork) {
+    ASSERT_EQ(1,1);
 }
 
 // template <typename T>
@@ -84,7 +98,6 @@ TEST_F(ApplicationTest, ThreadDoesWork) {
 //   // Exercises the Xyz feature of Foo.
 //   EXPECT_TRUE(::testing::internal::String::EndsWithCaseInsensitive("blargle", "argle"));
 //   EXPECT_TRUE(IsEven(4));
-//   ASSERT_EQ(1,1);
 // }
 
 } // namespace drumlin
@@ -93,8 +106,11 @@ int main(int argc, char **argv) {
     Application a;
     ::testing::InitGoogleTest(&argc, argv);
     drumlin::iapp = dynamic_cast<ApplicationBase*>(&a);
-    a.addThread(new Thread("test-worker", new ApplicationWorker(ThreadType_test, argc, argv)), false);
+    //a.addThread(new Thread("test-worker", new ApplicationWorker(ThreadType_test, argc, argv)), false);
     a.addThread(new Thread("terminal", new Terminator()), true);
+    // json::value status(json::empty_object);
+    // a.getStatus(&status);
+    // json::to_stream(std::cout, status);
     a.exec();
     Debug() << "returning from main";
 }

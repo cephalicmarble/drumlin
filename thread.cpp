@@ -18,8 +18,6 @@ using namespace boost;
 
 namespace drumlin {
 
-#define THREADLOG2(a, b) {LOGLOCK;Debug() << "thread.cpp" << getName() << __func__ << a << b << this;}
-
 /**
  * @brief Thread::Thread : construct a new thread, to be Application::addThread(*,bool start)-ed
  * @param _task string name
@@ -39,13 +37,13 @@ Thread::~Thread()
 
 void Thread::terminate()
 {
-    Debug() << __func__ << this;
+    PLATE;
     {
+        CRITICAL;
         if(m_terminated)
             return;
         m_terminated = true;
     }
-    quit();
 }
 
 /**
@@ -63,10 +61,49 @@ double Thread::elapsed()
 }
 
 /**
+ * @brief  getBoostThread
+ * @return const& boost::thread
+ */
+boost::thread const& Thread::getBoostThread()const
+{
+    CRITICAL;
+    return *m_thread;
+}
+
+/**
+ * @brief getWorker
+ * @return ThreadWorker*
+ */
+std::shared_ptr<ThreadWorker> Thread::getWorker()const
+{
+    CRITICAL
+    return m_worker;
+}
+
+/**
+ * @brief hasWorker
+ * @return bool
+ */
+bool Thread::hasWorker()const
+{
+    CRITICAL
+    return m_worker.get() != nullptr;
+}
+
+/**
+ * @brief isStarted
+ * @return bool
+ */
+bool Thread::isStarted()const
+{
+    return m_ready;
+}
+
+/**
  * @brief Thread::getName : (string)"<type>:<task>"
  * @return string
  */
-string Thread::getName()
+string Thread::getType()const
 {
     return metaEnum<ThreadWorker::Type>().toString(m_worker->getType()) + ":" + m_task;
 }
@@ -87,9 +124,7 @@ bool Thread::event(std::shared_ptr<Event> pevent)
     if((guint32)pevent->type() < (guint32)DrumlinEventEvent_first
             || (guint32)pevent->type() > (guint32)DrumlinEventEvent_last){
         return false;
-    }
-    if((guint32)pevent->type() > (guint32)DrumlinEventThread_first
-            && (guint32)pevent->type() < (guint32)DrumlinEventThread_last){
+    } else {
         THREADLOG2(metaEnum<DrumlinEventType>().toString((DrumlinEventType)pevent->type()),pevent->getName());
         switch(pevent->type()){
         case DrumlinEventThreadWork:
@@ -125,18 +160,20 @@ void Thread::start()
  */
 void Thread::run()
 {
+    post(event::make_event(DrumlinEventThreadNotify,"beforeWork"));
     THREADLOG2("starting",boost::this_thread::get_id())
     post(event::make_event(DrumlinEventThreadWork,"work"));
     if(!m_terminated)
         exec();
     if(getWorker()){
+        {LOGLOCK;Debug() << *this << " resetting worker...";}
         m_worker->shutdown();
         m_worker.reset();
     }else{
         terminate();
     }
     m_ready = false;
-    event::punt(event::make_event(DrumlinEventThreadRemove,"removeThread",this));
+    quit();
 }
 
 void Thread::post(typename queue_type::value_type event)
@@ -147,7 +184,7 @@ void Thread::post(typename queue_type::value_type event)
 
 void Thread::exec()
 {
-    while(!m_deleting && !m_terminated && !m_thread->interruption_requested()){
+    while(m_ready && !m_deleting && !m_terminated && !m_thread->interruption_requested()){
         queue_type::value_type pevent;
         try {
             boost::this_thread::interruption_point();
@@ -160,9 +197,8 @@ void Thread::exec()
             }
             if(!!pevent) {
                 if(!event(pevent))
-                    Critical() << __func__ << "not handling event" << *pevent;
+                    {LOGLOCK;Critical() << __func__ << "not handling event" << *pevent;}
             }
-            boost::this_thread::yield();
         } catch(thread_interrupted &ti) {
             THREADLOG2(*pevent, "thread_interrupted");
             break;
@@ -173,12 +209,17 @@ void Thread::exec()
             THREADLOG2(*pevent, e);
             break;
         }
+        boost::this_thread::yield();
+        boost::this_thread::sleep(boost::posix_time::milliseconds(400));
     }
+    m_deleting = true;
 }
 
 void Thread::quit()
 {
-    m_thread->interrupt();
+    CRITICAL;
+    //m_thread->interrupt();
+    event::punt(event::make_event(DrumlinEventThreadRemove,"removeThread",this));
 }
 
 /**
@@ -194,18 +235,35 @@ Thread::operator const char*()const
     return buf = strdup(ss.str().c_str());
 }
 
+void Thread::wait(gint64 millis){
+    if (!m_thread) {
+      return;
+    }
+    if(!m_deleting && m_thread->joinable())
+    {
+        if(millis<0)
+            m_thread->join();
+        else
+            m_thread->try_join_for(boost::chrono::milliseconds(millis));
+    }
+}
+
 /**
  * @brief operator << : stream operator
  * @param stream std::ostream &
  * @param rhs Thread const&
  * @return std::ostream &
  */
-logger &operator<<(logger &stream,const Thread &rel)
+std::ostream &operator<<(std::ostream &stream,const Thread &thrd)
 {
-    stream << rel.getBoostThread().get_id();
-    auto tmp = rel.getWorker();
-    if(tmp){
-        tmp->writeToStream((ostream&)stream);
+    CRITICALOP(thrd);
+    stream << "{Thread:" << &thrd << ",task:" << thrd.getTask() << ",type:" << thrd.getWorker()->getType();
+    stream << ",term:" << (thrd.isTerminated()?'y':'n');
+    stream << ",runs:" << (thrd.isStarted()?'y':'n');
+    if (!!thrd.m_thread.get()) {
+        stream << ",id:" << thrd.getBoostThread().get_id() << "}";
+    } else {
+        stream << ",id:0x00}";
     }
     return stream;
 }

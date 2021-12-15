@@ -43,6 +43,11 @@ public:
      */
     Type getType()const{ return m_type; }
     /**
+     * @brief getType
+     * @return ThreadType
+     */
+    std::string getTypeName()const{ return gremlin::metaEnum<Type>().toString(m_type); }
+    /**
      * @brief start
      */
     //jobs_type const& getJobs()const{ return m_jobs; }

@@ -1,11 +1,13 @@
 #include "logger.h"
+#include <boost/mpl/for_each.hpp>
 #include "drumlin.h"
+#include "thread.h"
 
 namespace drumlin {
 
 bool debug = true;
 
-std::recursive_mutex logger::s_critical_section;
+std::mutex logger::s_critical_section;
 
 logger::logger(ostream &strm):stream(strm)
 {
@@ -21,12 +23,6 @@ logger::~logger()
 {
     stream << endl;
     stream.flush();
-}
-
-logger::operator ostream&()
-{
-    stream << " ";
-    return stream;
 }
 
 logger &logger::operator<<(const boost::thread::id &id)
@@ -103,13 +99,27 @@ logger &logger::operator<<(void* ptr)
 
 logger &logger::operator<<(const std::exception &e)
 {
-    stream << e.what();
+    stream << " " << e.what();
     return *this;
 }
 
 ostream &logger::getStream()
 {
     return stream;
+}
+
+logger& logger::operator<< (const boost::any& p)
+{
+    boost::mpl::for_each<value_types>(drumlin::stream_operator_impl(getStream(),p));
+    return *this;
+}
+
+logger &logger::operator<<(const Thread &thrd)
+{
+    std::stringstream ss;
+    ss << thrd;
+    stream << " " << ss.str();
+    return *this;
 }
 
 }

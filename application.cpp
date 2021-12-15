@@ -17,13 +17,13 @@ ApplicationBase *iapp;
 void Application::addThread(Thread *thread, bool startWork)
 {
     THREADSLOCK
-    Debug() << __func__ << thread->getTask() << ":" << thread->getName();
-    threads.push_back(thread);
+    {LOGLOCK;Debug() << __func__ << thread << ":" << *thread << (startWork ? "started" : "paused");}
+    m_threads.push_back(thread);
     if (startWork)
     {
-        thread->post(event::make_event(DrumlinEventThreadWork,"grindstone"));
+        thread->post(event::make_event(DrumlinEventThreadNotify,"beforeStart"));
+        thread->start();
     }
-    thread->start();
 }
 
 /**
@@ -33,26 +33,24 @@ void Application::addThread(Thread *thread, bool startWork)
 void Application::removeThread(Thread *thread)
 {
     THREADSLOCK
-    Debug() << __func__ << thread->getTask();
+    {LOGLOCK;Debug() << __func__ << thread->getTask();}
     if (thread->isStarted() && !thread->isTerminated()) {
         std::stringstream ss;
-        ss << "thread (" << thread->getName() << ") not terminated." << std::endl;
+        ss << *thread << " : not terminated" << std::endl;
         throw Exception(ss);
     }
-    (void)std::remove(threads.begin(), threads.end(), thread);
+    auto endIter(std::remove(m_threads.begin(), m_threads.end(), thread));
     delete thread;
-    if(0==std::distance(threads.begin(),threads.end())){
+    {LOGLOCK;Debug() << "Number of remaining threads: " << std::distance(m_threads.begin(),endIter);}
+    if(0==std::distance(m_threads.begin(),endIter)){
         post(event::make_event(DrumlinEventApplicationThreadsGone,"threadsGone",(Object*)0));
     }
 }
 
 void Application::post(std::shared_ptr<Event> pevent)
 {
-    if(terminated) {
-        event(pevent);
-    } else {
-        m_queue << pevent;
-    }
+    CRITICAL;
+    m_queue << pevent;
 }
 
 int Application::exec()
@@ -68,6 +66,8 @@ int Application::exec()
                     Critical() << __func__ << "unhandled event" << *pevent;
                 }
             }
+            boost::this_thread::yield();
+            boost::this_thread::sleep(boost::posix_time::milliseconds(400));
         }
     } catch(thread_interrupted &ti) {
         {LOGLOCK;Debug() << "thread interrupted: returning from Application::exec";}
@@ -81,7 +81,7 @@ int Application::exec()
         shutdown();
         return 3;
     }
-    Debug() << "returning from Application::exec";
+    {LOGLOCK;Debug() << "returning from Application::exec";}
     return 0;
 }
 /**
@@ -92,6 +92,8 @@ int Application::exec()
  */
 bool Application::event(std::shared_ptr<Event> const& pevent)
 {
+    EVENTLOG(pevent);
+
     try{
         if((guint32)pevent->type() < (guint32)DrumlinEventEvent_first
         || (guint32)pevent->type() > (guint32)DrumlinEventEvent_last){
@@ -100,7 +102,7 @@ bool Application::event(std::shared_ptr<Event> const& pevent)
         switch(pevent->type()){
         case DrumlinEventThreadWarning:
         {
-            Debug() << pevent->getName();
+            {LOGLOCK;Debug() << "Warning:" << pevent->getName();}
             break;
         }
         case DrumlinEventThreadRemove:
@@ -110,28 +112,28 @@ bool Application::event(std::shared_ptr<Event> const& pevent)
         }
         case DrumlinEventApplicationClose:
         {
-            shutdown(pevent->getVal<bool>());
+            stop();
+            //wait for threads
             break;
         }
         case DrumlinEventApplicationThreadsGone:
         {
-            Tracer::endTrace();
-            if(terminator){
-                post(event::make_event(DrumlinEventApplicationShutdown, "threads-gone"));
-            }
+            shutdown(pevent->getVal<bool>());
+            //sends shutdown events
             break;
         }
         case DrumlinEventApplicationShutdown:
         {
-            Debug() << "Terminated...";
+            Tracer::endTrace();
+            {LOGLOCK;Debug() << "Terminated...";}
             quit();
+            //closes loop
             break;
         }
         case DrumlinEventApplicationRestart:
         {
-            Debug() << "Restarted...";
-            terminated = false;
-            exec();
+            {LOGLOCK;Debug() << "Restarted...";}
+            //create new app thread.
             break;
         }
         default:
@@ -139,7 +141,7 @@ bool Application::event(std::shared_ptr<Event> const& pevent)
         }
         return true;
     }catch(Exception &e){
-        Debug() << e.what();
+        {LOGLOCK;Debug() << e.what();}
     }
     return false;
 }
@@ -148,18 +150,41 @@ bool Application::event(std::shared_ptr<Event> const& pevent)
  */
 void Application::stop()
 {
-    Debug() << this << __func__;
+    {LOGLOCK;Debug() << __FILE__ << __func__ << "Terminating threads...";}
     threads_type _threads;
-    for(guint16 type = (guint16)ThreadType_terminator-1;type>(guint16)ThreadType_first;type--){
-        threads.clear();
-        std::copy_if(m_threads.begin(), m_threads.end(), std::back_inserter(threads), [type](auto *thread){
-            return thread->getWorker()->getType() == type;
-        });
-        for(threads_type::value_type &thread : _threads){
-            thread->terminate();
-            thread->wait(-1);
+    for(guint16 type = (guint16)ThreadType_last;type>(guint16)ThreadType_first;type--){
+        _threads.clear();
+        {
+            THREADSLOCK
+            std::copy_if(m_threads.begin(), m_threads.end(), std::back_inserter(_threads), [type](auto *thread){
+                return thread->hasWorker() && thread->getWorker()->getType() == type;
+            });
+            {LOGLOCK;Debug()
+                    << "Terminating "
+                    << std::distance(_threads.begin(), _threads.end())
+                    << " "
+                    << metaEnum<ThreadType>().toString((gremlin::ThreadType)type)
+                    << " threads";}
+            for(auto thread : _threads){
+                thread->terminate();
+            }
+        }
+        {LOGLOCK;Debug()
+                    << "Waiting for "
+                    << std::distance(_threads.begin(), _threads.end())
+                    << " "
+                    << metaEnum<ThreadType>().toString((gremlin::ThreadType)type)
+                    << " threads";}
+        for(auto thread : _threads){
+            if (!thread->isStarted())
+            {
+                thread->quit();
+            } else {
+                thread->wait();
+            }
         }
     }
+    {LOGLOCK;Debug() << __FILE__ << __func__ << "End of Application::stop.";}
 }
 
 void Application::quit()
@@ -169,7 +194,7 @@ void Application::quit()
 
 void Application::shutdown(bool restarting)
 {
-    Debug() << "Terminating...";
+    {LOGLOCK;Debug() << "Terminating...";}
     if(!restarting){
         post(event::make_event(DrumlinEventApplicationShutdown,"Shutdown::shutdown",(Object*)0));
     }else{
@@ -182,7 +207,7 @@ bool Application::handleSignal(gremlin::SignalType signal)
     if(Tracer::tracer!=nullptr){
         Tracer::endTrace();
     }
-    Debug() << "punt DrumlinEventApplicationShutdown";
+    {LOGLOCK;Debug() << "punt DrumlinEventApplicationShutdown";}
     event::punt(event::make_event(DrumlinEventApplicationShutdown,
         gremlin::metaEnum<SignalType>().toString(signal),(Object*)(gint64)signal));
     return true;

@@ -5,11 +5,14 @@
 #include <iostream>
 using namespace std;
 #include <boost/thread.hpp>
+#include <boost/any.hpp>
 using namespace boost;
 
 namespace drumlin {
 
 extern bool debug;
+
+class Thread;
 
 class logger
 {
@@ -17,7 +20,6 @@ public:
     logger(ostream &strm);
     logger(logger &rhs);
     ~logger();
-    operator ostream&();
     logger &operator<<(const boost::thread::id &id);
     logger &operator<<(const string & str);
     logger &operator<<(const char *str);
@@ -32,7 +34,9 @@ public:
     logger &operator<<(void* ptr);
     logger &operator<<(const std::exception &e);
     ostream &getStream();
-    static std::recursive_mutex s_critical_section;
+    logger& operator<<(const boost::any& p);
+    logger &operator<<(const Thread &e);
+    static std::mutex s_critical_section;
 private:
     ostream &stream;
 };

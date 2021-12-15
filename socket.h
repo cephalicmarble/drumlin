@@ -228,7 +228,7 @@ public:
         bool replying = false;
         //        if(socketType() == SocketType::TcpSocket) {
         if(handler->readyProcess(this)){
-            Debug() << this << "::processTransmission";
+            {LOGLOCK;Debug() << this << "::processTransmission";}
             replying = handler->processTransmission(this);
         }
         //        }else{
@@ -236,7 +236,7 @@ public:
         //            replying = handler->receivePacket(this);
         //        }
         if(replying){
-            Debug() << this << "::reply";
+            {LOGLOCK;Debug() << this << "::reply";}
             replying = false;
             setFinished(handler->reply(this));
             if(finished)
@@ -267,7 +267,7 @@ public:
             if(length){
                 freud = (char*)malloc(length+1);
                 if(!freud){
-                    Critical() << __func__ << "ENOMEM";
+                    {LOGLOCK;Critical() << __func__ << "ENOMEM";}
                     return byte_array("");
                 }
                 char *pos(freud);

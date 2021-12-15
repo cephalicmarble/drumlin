@@ -17,6 +17,7 @@ using namespace std;
     DrumlinEventEvent_first,\
     DrumlinEventThread_first,\
     DrumlinEventThreadWork,\
+    DrumlinEventThreadNotify,\
     DrumlinEventThreadWarning,\
     DrumlinEventThreadShutdown,\
     DrumlinEventThreadRemove,\

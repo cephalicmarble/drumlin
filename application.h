@@ -12,13 +12,14 @@ using namespace std;
 #include "thread.h"
 #include "thread_worker.h"
 #include "terminator.h"
+#include "metatypes.h"
 
 namespace drumlin {
 
 extern ApplicationBase *iapp;
 
-#define FRIENDTHREADSLOCK std::lock_guard<std::mutex> l(const_cast<std::mutex&>(iapp->m_critical_section));
-#define THREADSLOCK std::lock_guard<std::mutex> l(const_cast<std::mutex&>(m_critical_section));
+#define FRIENDTHREADSLOCK std::lock_guard<std::recursive_mutex> l(const_cast<std::recursive_mutex&>(iapp->m_critical_section));
+#define THREADSLOCK std::lock_guard<std::recursive_mutex> l(const_cast<std::recursive_mutex&>(m_critical_section));
 
 class ThreadsAccessor;
 
@@ -39,7 +40,7 @@ public:
      * @param thread Thread*
      * @param start bool
      */
-    void addThread(Thread *thread, bool startWork = false);
+    void addThread(Thread *thread, bool startWork);
 
     /**
      * @brief Application::removeThread : remove a thread
@@ -64,10 +65,7 @@ public:
     void quit();
     void shutdown(bool restarting = false);
     bool handleSignal(gremlin::SignalType signal);
-protected:
-    Terminator *terminator = nullptr;
 private:
-    threads_type m_threads;
     bool terminated = false;
     boost::concurrent::sync_queue<std::shared_ptr<Event>> m_queue;
 

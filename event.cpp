@@ -17,7 +17,13 @@ namespace drumlin {
 logger &operator <<(logger &stream, const Event &event)
 {
     std::stringstream ss;
-    ss << "{Event:" << event.getName() << ":" << metaEnum<DrumlinEventType>().toString((DrumlinEventType)event.type()) << "}";
+    ss  << "{Event:"
+        << event.getName()
+        << ":"
+        << metaEnum<DrumlinEventType>().toString((DrumlinEventType)event.type())
+        << ":"
+        << event.getVal<void*>()
+        << "}";
     stream << ss.str();
     return stream;
 }
@@ -49,7 +55,7 @@ Event::Event(Type _type,string _string,void *_pointer)
 Event::Event(Event const& rhs)
 :m_type(rhs.type()),m_string(rhs.getName()),m_ptr(rhs.getVal<void*>())
 {
-    Debug() << "copy Event" << rhs << " to " << *this << ":" << this;
+    {LOGLOCK;Debug() << "copy Event" << rhs << " to " << *this << ":" << this;}
 }
 
 Event::Event(Event && rhs)
@@ -57,7 +63,7 @@ Event::Event(Event && rhs)
  m_string(std::move(rhs.m_string)),
  m_ptr(std::move(rhs.m_ptr))
 {
-    Debug() << "copy Event" << rhs << " to " << *this << ":" << this;
+    {LOGLOCK;Debug() << "copy Event" << rhs << " to " << *this << ":" << this;}
 }
 
 
@@ -91,6 +97,7 @@ std::shared_ptr<Event> make_event(Event::Type _type,std::string const& name,void
  */
 void punt(std::shared_ptr<Event> event)
 {
+    {LOGLOCK;Debug() << "punting" << *event << "to" << "application";}
     drumlin::iapp->post(event);
 }
 
@@ -100,6 +107,7 @@ void punt(std::shared_ptr<Event> event)
  */
 void send(Thread *target, std::shared_ptr<Event> event)
 {
+    {LOGLOCK;Debug() << "sending" << *event << "to" << *target;}
     target->post(event);
 }
 
@@ -112,10 +120,9 @@ void post(ThreadWorker *worker, std::shared_ptr<Event> event)
     ThreadAccessor access;
     access.getWorkered(worker);
     if(access.selectionEmpty()) {
-        Debug() << "no thread for " << worker->getType();
+        {LOGLOCK;Debug() << "no thread for " << worker->getType();}
         return;
     }
-    Debug() << "sending" << *event << "to" << access.first()->getName();
     access(SendEvent(event));
 }
 
