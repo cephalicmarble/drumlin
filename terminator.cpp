@@ -25,41 +25,49 @@ void Terminator::work(Object *,std::shared_ptr<Event> pevent)
 bool Terminator::event(std::shared_ptr<Event> pevent)
 {
     EVENTLOG(pevent);
+    std::string event(pevent->getName());
     switch (pevent->type())
     {
         case DrumlinEventThreadNotify:
-            std::string event(pevent->getName());
             if (event == "test-success" || event == "test-failure")
             {
-                {LOGLOCK;Debug() << "GTEST:" << pevent->getName();}
+                {LOGLOCK;Debug() << "FROM GTEST:" << pevent->getName();}
+                event::punt(event::make_event(DrumlinEventApplicationClose,__func__));
             } else if (event == "beforeWork" || event == "beforeStart") {
                 {LOGLOCK;Debug() << "Terminator:" << event;}
             }
             return true;
+        default:
+            return false;
     }
-    return false;
 }
 
 void Terminator::run()
 {
-    std::string str("c");
-    //std::cin >> str;
+    //static char pr[] = {'c','#'};
+    static char pr[] = {'s', 't'};
+    static char *pc = pr;
+    std::string str;
+    if (std::distance(pr, pc++) > 2) {
+        std::cin >> str;
+    } else {
+        str = *pc;
+    }
     switch(*str.begin()) {
         case 't':
             ThreadAccessor()
                 .named("test-worker")
                 .getNamed()
                 (SendEvent(event::make_event(DrumlinEventThreadWork, "run-tests")));
-                break;
+            break;
         case 's':
             ThreadAccessor()
                 .named("test-worker")
                 .getNamed()
                 (StartThread());
-                break;
+            break;
         case 'c':
-            event::punt(event::make_event(DrumlinEventApplicationClose,
-                __func__,(Object*)(*str.begin() == 'r' || *str.begin() == 'R')));
+            event::punt(event::make_event(DrumlinEventApplicationClose,__func__));
             break;
         default:
             boost::this_thread::yield();

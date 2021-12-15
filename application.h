@@ -7,6 +7,7 @@ using namespace tao;
 using namespace std;
 #include <boost/thread/sync_queue.hpp>
 #include "applicationbase.h"
+#include "drumlin.h"
 #include "event.h"
 #include "signalhandler.h"
 #include "thread.h"
@@ -17,9 +18,6 @@ using namespace std;
 namespace drumlin {
 
 extern ApplicationBase *iapp;
-
-#define FRIENDTHREADSLOCK std::lock_guard<std::recursive_mutex> l(const_cast<std::recursive_mutex&>(iapp->m_critical_section));
-#define THREADSLOCK std::lock_guard<std::recursive_mutex> l(const_cast<std::recursive_mutex&>(m_critical_section));
 
 class ThreadsAccessor;
 

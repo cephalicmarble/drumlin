@@ -43,7 +43,7 @@ class Thread;
 class Event
 {
 public:
-    typedef guint32 Type;
+    typedef gremlin::DrumlinEventType Type;
 public:
     /**
      * @brief type

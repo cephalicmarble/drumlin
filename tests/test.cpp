@@ -21,8 +21,8 @@ class ApplicationWorker
 public:
     int argc;
     char **argv;
-    ApplicationWorker(Type _type, int _argc, char **_argv)
-    : ThreadWorker(_type), argc(_argc), argv(_argv)
+    ApplicationWorker(int _argc, char **_argv)
+    : ThreadWorker(ThreadType_test), argc(_argc), argv(_argv)
     {
         APLATE;
     }
@@ -40,26 +40,53 @@ public:
         obj->get_object().insert({std::string("ApplicationWorker"),std::string("getStatus")});
     }
     virtual void shutdown() {
-        signalTermination();
+        PLATE;
     }
     virtual void report(json::value *obj/*,ReportType type*/)const {
         obj->get_object().insert({std::string("ApplicationWorker"),std::string("report")});
     }
     virtual void work(Object *,Event *pevent){
-        if (pevent->getName() == "run-tests") {
+        EVENTLOG1(pevent, "GTEST work function...");
+        if (pevent->getName() == "work") {
             ThreadAccessor access;
             access.named("terminal");
             access.getNamed();
+
             if(0 == RUN_ALL_TESTS()) {
                 access(SendEvent(event::make_event(DrumlinEventThreadNotify, "test-success")));
             }else{
                 access(SendEvent(event::make_event(DrumlinEventThreadNotify, "test-failure")));
             }
+        } else if(pevent->getName() == "beforeWork") {
+            EVENTLOG1(pevent, "waiting...");
+        }
+        {
+            ThreadAccessor()
+            .named("terminal")
+            .getNamed()
+            (SendEvent(event::make_event(DrumlinEventThreadWork, "next-char")));
         }
     }
-    virtual bool event(std::shared_ptr<Event>)
+    virtual bool event(std::shared_ptr<Event> pevent)
     {
-        return false;
+        switch(pevent->type())
+        {
+            case DrumlinEventThreadNotify:
+                if (pevent->getName() == "beforeStart") {
+                    EVENTLOG1(pevent, "preparing...");
+                } else {
+                    EVENTLOG(pevent);
+                }
+                {
+                    ThreadAccessor()
+                    .named("terminal")
+                    .getNamed()
+                    (SendEvent(event::make_event(DrumlinEventThreadWork, "next-char")));
+                }
+                return true;
+            default:
+                return false;
+        }
     }
 };
 
@@ -106,7 +133,7 @@ int main(int argc, char **argv) {
     Application a;
     ::testing::InitGoogleTest(&argc, argv);
     drumlin::iapp = dynamic_cast<ApplicationBase*>(&a);
-    //a.addThread(new Thread("test-worker", new ApplicationWorker(ThreadType_test, argc, argv)), false);
+    a.addThread(new Thread("test-worker", new ApplicationWorker(argc, argv)), true);
     a.addThread(new Thread("terminal", new Terminator()), true);
     // json::value status(json::empty_object);
     // a.getStatus(&status);

@@ -39,7 +39,7 @@ void Thread::terminate()
 {
     PLATE;
     {
-        CRITICAL;
+        INTERNAL;
         if(m_terminated)
             return;
         m_terminated = true;
@@ -66,7 +66,7 @@ double Thread::elapsed()
  */
 boost::thread const& Thread::getBoostThread()const
 {
-    CRITICAL;
+    INTERNAL;
     return *m_thread;
 }
 
@@ -76,7 +76,7 @@ boost::thread const& Thread::getBoostThread()const
  */
 std::shared_ptr<ThreadWorker> Thread::getWorker()const
 {
-    CRITICAL
+    INTERNAL;
     return m_worker;
 }
 
@@ -86,7 +86,7 @@ std::shared_ptr<ThreadWorker> Thread::getWorker()const
  */
 bool Thread::hasWorker()const
 {
-    CRITICAL
+    INTERNAL;
     return m_worker.get() != nullptr;
 }
 
@@ -96,6 +96,7 @@ bool Thread::hasWorker()const
  */
 bool Thread::isStarted()const
 {
+    INTERNAL;
     return m_ready;
 }
 
@@ -105,6 +106,7 @@ bool Thread::isStarted()const
  */
 string Thread::getType()const
 {
+    INTERNAL;
     return metaEnum<ThreadWorker::Type>().toString(m_worker->getType()) + ":" + m_task;
 }
 
@@ -116,6 +118,9 @@ string Thread::getType()const
  */
 bool Thread::event(std::shared_ptr<Event> pevent)
 {
+    static std::mutex localMutex;
+    std::lock_guard<std::mutex> l(const_cast<std::mutex&>(localMutex));
+
     if(!pevent.get())
         return false;
     if(getWorker()->event(pevent)){
@@ -148,8 +153,13 @@ bool Thread::event(std::shared_ptr<Event> pevent)
 
 void Thread::start()
 {
-    m_ready = true;
-    m_thread.reset(new boost::thread(&Thread::run,this));
+    CRITICAL;
+    {
+        INTERNAL;
+        if (m_ready) return;
+        m_ready = true;
+        m_thread.reset(new boost::thread(&Thread::run,this));
+    }
 }
 
 /**
@@ -163,8 +173,19 @@ void Thread::run()
     post(event::make_event(DrumlinEventThreadNotify,"beforeWork"));
     THREADLOG2("starting",boost::this_thread::get_id())
     post(event::make_event(DrumlinEventThreadWork,"work"));
-    if(!m_terminated)
-        exec();
+    if(!m_terminated) {
+        static std::mutex localMutex;
+        while(m_ready && !m_deleting && !m_terminated && !m_thread->interruption_requested()) {
+            if(localMutex.try_lock())
+            {
+                exec();
+            }
+            localMutex.unlock();
+            boost::this_thread::yield();
+            boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+        }
+        m_deleting = true;
+    }
     if(getWorker()){
         {LOGLOCK;Debug() << *this << " resetting worker...";}
         m_worker->shutdown();
@@ -178,61 +199,37 @@ void Thread::run()
 
 void Thread::post(typename queue_type::value_type event)
 {
-    std::lock_guard<std::recursive_mutex> l(m_critical_section);
     m_queue.push(event);
 }
 
 void Thread::exec()
 {
-    while(m_ready && !m_deleting && !m_terminated && !m_thread->interruption_requested()){
-        queue_type::value_type pevent;
-        try {
-            boost::this_thread::interruption_point();
-            {
-                std::lock_guard<std::recursive_mutex> l(m_critical_section);
-                if(!m_queue.empty()) {
-                    pevent = m_queue.front();
-                    m_queue.pop();
-                }
-            }
-            if(!!pevent) {
-                if(!event(pevent))
-                    {LOGLOCK;Critical() << __func__ << "not handling event" << *pevent;}
-            }
-        } catch(thread_interrupted &ti) {
-            THREADLOG2(*pevent, "thread_interrupted");
-            break;
-        } catch(Exception const& e) {
-            THREADLOG2(*pevent, e);
-            break;
-        } catch(std::exception const& e) {
-            THREADLOG2(*pevent, e);
-            break;
+    {LOGLOCK;Debug() << "thread::exec" << *this;}
+    queue_type::value_type pevent;
+    try {
+        boost::this_thread::interruption_point();
+        {
+            boost::this_thread::disable_interruption di;
+            m_queue.wait_pull(pevent);
         }
-        boost::this_thread::yield();
-        boost::this_thread::sleep(boost::posix_time::milliseconds(400));
+        if(!!pevent) {
+            if(!event(pevent))
+                {LOGLOCK;Critical() << __func__ << "not handling event" << *pevent;}
+        }
+    } catch(thread_interrupted &ti) {
+        THREADLOG2(*pevent, "thread_interrupted");
+    } catch(Exception const& e) {
+        THREADLOG2(*pevent, e);
+    } catch(std::exception const& e) {
+        THREADLOG2(*pevent, e);
     }
-    m_deleting = true;
 }
 
 void Thread::quit()
 {
-    CRITICAL;
+    INTERNAL;
     //m_thread->interrupt();
     event::punt(event::make_event(DrumlinEventThreadRemove,"removeThread",this));
-}
-
-/**
- * @brief operator const char*: for Debug
- */
-Thread::operator const char*()const
-{
-    std::lock_guard<std::recursive_mutex> l(const_cast<std::recursive_mutex&>(m_critical_section));
-    static char *buf;
-    if(buf)free(buf);
-    std::stringstream ss;
-    ss << *this;
-    return buf = strdup(ss.str().c_str());
 }
 
 void Thread::wait(gint64 millis){
@@ -256,10 +253,11 @@ void Thread::wait(gint64 millis){
  */
 std::ostream &operator<<(std::ostream &stream,const Thread &thrd)
 {
-    CRITICALOP(thrd);
+    //INTERNALOP(thrd);
     stream << "{Thread:" << &thrd << ",task:" << thrd.getTask() << ",type:" << thrd.getWorker()->getType();
     stream << ",term:" << (thrd.isTerminated()?'y':'n');
     stream << ",runs:" << (thrd.isStarted()?'y':'n');
+    stream << ",del:" << (thrd.m_deleting?'y':'n');
     if (!!thrd.m_thread.get()) {
         stream << ",id:" << thrd.getBoostThread().get_id() << "}";
     } else {

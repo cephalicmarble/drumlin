@@ -32,7 +32,7 @@ class Server;
  */
 class Thread
 {
-    typedef std::queue<std::shared_ptr<Event>> queue_type;
+    typedef boost::concurrent::sync_queue<std::shared_ptr<Event>> queue_type;
 public:
     bool isTerminated()const{ return m_terminated; }
     void terminate();
@@ -57,7 +57,6 @@ protected:
 public:
     virtual void quit();
     virtual void post(typename queue_type::value_type event);
-    operator const char*()const;
     friend class ThreadWorker;
     void wait(gint64 millis = -1);
 private:
@@ -69,8 +68,9 @@ private:
     bool m_terminated = false;
     std::unique_ptr<boost::thread> m_thread;
     static std::recursive_mutex m_critical_section;
-
+    std::recursive_mutex m_mutex;
     friend std::ostream &operator <<(std::ostream &stream, const Thread &e);
+    friend class logger;
 };
 
 extern std::ostream &operator <<(std::ostream &stream, const Thread &e);

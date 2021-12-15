@@ -12,9 +12,12 @@ namespace drumlin {
 
 void ThreadWorker::stop()
 {
+    CRITICAL;
     shutdown();
     signalTermination();
 }
+
+std::recursive_mutex ThreadWorker::m_critical_section;
 
 /**
  * @brief ThreadWorker::~ThreadWorker : removes the event filter
@@ -35,6 +38,7 @@ ThreadWorker::~ThreadWorker()
  */
 void ThreadWorker::signalTermination()
 {
+    CRITICAL;
     ThreadAccessor access;
     access.getWorkered(this);
     if(access.selectionEmpty()) {
@@ -48,6 +52,7 @@ void ThreadWorker::signalTermination()
 
 void ThreadWorker::report(json::value *obj/*,ReportType type*/)const
 {
+    CRITICAL;
     auto &map(obj->get_object());
     //map.insert({"task",getThread()->getTask()});
     map.insert({std::string("type"),gremlin::metaEnum<gremlin::ThreadType>().toString(this->m_type)});
@@ -74,12 +79,14 @@ void ThreadWorker::report(json::value *obj/*,ReportType type*/)const
 
 void ThreadWorker::writeToObject(json::value *obj)const
 {
+    CRITICAL;
     report(obj/*,WorkObject::ReportType::All*/);
     obj->get_object().insert({std::string("type"),gremlin::metaEnum<gremlin::ThreadType>().toString(this->m_type)});
 }
 
 void ThreadWorker::writeToStream(std::ostream &stream)const
 {
+    CRITICAL;
     json::value obj(json::empty_object);
     writeToObject(&obj);
     json::to_stream(stream,obj);

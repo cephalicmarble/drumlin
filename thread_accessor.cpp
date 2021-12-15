@@ -19,7 +19,8 @@ void StartThread::operator()(Thread *_thread) const
     if(!_thread->isStarted()) _thread->start();
 }
 
-ThreadAccessor::ThreadAccessor(): m_mutex_lock(const_cast<std::recursive_mutex&>(iapp->m_critical_section))
+ThreadAccessor::ThreadAccessor()
+: m_mutex_lock(const_cast<std::recursive_mutex&>(iapp->m_critical_section))
 {
     clear();
 }

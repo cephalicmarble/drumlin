@@ -13,7 +13,18 @@ using namespace drumlin;
 #define Debug() if(drumlin::debug) drumlin::logger(std::cerr)
 #define Critical() drumlin::logger(std::cerr) << "********"
 
-#define CRITICAL std::lock_guard<std::recursive_mutex> l(const_cast<std::recursive_mutex&>(m_critical_section));
+// for ThreadAccessor
+#define FRIENDTHREADSLOCK std::lock_guard<std::recursive_mutex> l(const_cast<std::recursive_mutex&>(iapp->m_critical_section));
+// for internal Application use
+#define THREADSLOCK std::lock_guard<std::recursive_mutex> l(const_cast<std::recursive_mutex&>(m_critical_section));
+
+// for internal brief use
+#define INTERNAL std::lock_guard<std::recursive_mutex> internal(const_cast<std::recursive_mutex&>(m_mutex));
+// for external brief use
+#define INTERNALOP(thread) std::lock_guard<std::recursive_mutex> l(const_cast<std::recursive_mutex&>(thread.m_mutex));
+// for the loops
+#define CRITICAL std::lock_guard<std::recursive_mutex> critical(const_cast<std::recursive_mutex&>(m_critical_section));
+// external version
 #define CRITICALOP(thread) std::lock_guard<std::recursive_mutex> l(const_cast<std::recursive_mutex&>(thread.m_critical_section));
 
 #define THREADLOG2(a, b) {LOGLOCK;Debug() << __func__ << a << b << *this;}
@@ -22,6 +33,11 @@ using namespace drumlin;
                             << __func__ \
                             << metaEnum<DrumlinEventType>().toString((DrumlinEventType)pevent->type()) \
                             << pevent->getName();}
+#define EVENTLOG1(pevent, a) {LOGLOCK;Debug() \
+                            << __func__ \
+                            << metaEnum<DrumlinEventType>().toString((DrumlinEventType)pevent->type()) \
+                            << pevent->getName() \
+                            << a ;}
 
 /**
  * LOGLOCK holds the logger mutex, so use wrap it in a block and preferably

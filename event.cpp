@@ -29,7 +29,7 @@ logger &operator <<(logger &stream, const Event &event)
 }
 
 Event::Event()
-:m_type(0),m_string("none"),m_ptr(nullptr)
+:m_type(gremlin::DrumlinEventEvent_first),m_string("none"),m_ptr(nullptr)
 {
     init();
 }

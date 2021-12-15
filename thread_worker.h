@@ -36,17 +36,17 @@ public:
     virtual void writeToObject(json::value *obj)const;
     virtual void getStatus(json::value *)const{}
 public:
-    std::recursive_mutex m_critical_section;
+    static std::recursive_mutex m_critical_section;
     /**
      * @brief getType
      * @return ThreadType
      */
-    Type getType()const{ return m_type; }
+    Type getType()const{ CRITICAL; return m_type; }
     /**
      * @brief getType
      * @return ThreadType
      */
-    std::string getTypeName()const{ return gremlin::metaEnum<Type>().toString(m_type); }
+    std::string getTypeName()const{ CRITICAL; return gremlin::metaEnum<Type>().toString(m_type); }
     /**
      * @brief start
      */
