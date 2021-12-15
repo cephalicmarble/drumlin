@@ -48,7 +48,7 @@ void Terminator::run()
     static char pr[] = {'s', 't'};
     static char *pc = pr;
     std::string str;
-    if (std::distance(pr, pc++) > 2) {
+    if (std::distance(pr, pc++) > 1) {
         std::cin >> str;
     } else {
         str = *pc;
