@@ -57,7 +57,7 @@ public:
     virtual void shutdown()=0;
     void signalTermination();
     virtual void report(json::value *obj/*,ReportType type*/)const;
-    virtual void work(Object *,std::shared_ptr<Event>){}
+    virtual void work(Object *,std::shared_ptr<Event>)=0;
     virtual bool event(std::shared_ptr<Event>){return false;}
     friend class Server;
 protected:

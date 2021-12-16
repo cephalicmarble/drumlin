@@ -45,10 +45,10 @@ bool Terminator::event(std::shared_ptr<Event> pevent)
 void Terminator::run()
 {
     //static char pr[] = {'c','#'};
-    static char pr[] = {'s', 't'};
+    static char pr[] = {'s', 't', 'g', 'c'};
     static char *pc = pr;
     std::string str;
-    if (std::distance(pr, pc++) > 1) {
+    if (std::distance(pr, pc++) > (int)sizeof(pr) - 1) {
         std::cin >> str;
     } else {
         str = *pc;

@@ -27,6 +27,11 @@ using namespace drumlin;
 // external version
 #define CRITICALOP(thread) std::lock_guard<std::recursive_mutex> l(const_cast<std::recursive_mutex&>(thread.m_critical_section));
 
+// #define INTERNAL {;}
+// #define INTERNALOP(a) {;}
+// #define CRITICAL {;}
+// #define CRITICALOP(a) {;}
+
 #define THREADLOG2(a, b) {LOGLOCK;Debug() << __func__ << a << b << *this;}
 
 #define EVENTLOG(pevent) {LOGLOCK;Debug() \

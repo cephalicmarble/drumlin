@@ -61,9 +61,12 @@ int Application::exec()
             boost::this_thread::interruption_point();
             {
                 boost::this_thread::disable_interruption di;
-                m_queue.wait_pull(pevent);
-                if(!event(pevent)){
-                    Critical() << __func__ << "unhandled event" << *pevent;
+                if (m_queue.try_pull(pevent) != boost::queue_op_status::empty)
+                {
+                    if (!event(pevent))
+                    {
+                        Critical() << __func__ << "unhandled event" << *pevent;
+                    }
                 }
             }
             boost::this_thread::yield();

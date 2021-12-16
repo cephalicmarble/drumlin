@@ -210,7 +210,10 @@ void Thread::exec()
         boost::this_thread::interruption_point();
         {
             boost::this_thread::disable_interruption di;
-            m_queue.wait_pull(pevent);
+            if(m_queue.try_pull(pevent) == boost::queue_op_status::empty)
+            {
+                return;
+            }
         }
         if(!!pevent) {
             if(!event(pevent))

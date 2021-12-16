@@ -36,7 +36,7 @@ public:
     virtual void writeToObject(json::value *obj)const {
         obj->get_object().insert({std::string("ApplicationWorker"),std::string("writeToObject")});
     }
-    virtual void getStatus(json::value *obj)const{
+    virtual void getStatus(json::value *obj)const {
         obj->get_object().insert({std::string("ApplicationWorker"),std::string("getStatus")});
     }
     virtual void shutdown() {
@@ -45,9 +45,9 @@ public:
     virtual void report(json::value *obj/*,ReportType type*/)const {
         obj->get_object().insert({std::string("ApplicationWorker"),std::string("report")});
     }
-    virtual void work(Object *,Event *pevent){
-        EVENTLOG1(pevent, "GTEST work function...");
-        if (pevent->getName() == "work") {
+    virtual void work(Object *,std::shared_ptr<Event> pevent) {
+        if (pevent->getName() == "run-tests") {
+            EVENTLOG1(pevent, "GTEST work function...");
             ThreadAccessor access;
             access.named("terminal");
             access.getNamed();
@@ -59,13 +59,15 @@ public:
             }
         } else if(pevent->getName() == "beforeWork") {
             EVENTLOG1(pevent, "waiting...");
+        } else if(pevent->getName() == "work") {
+            EVENTLOG1(pevent, "working...");
         }
-        {
-            ThreadAccessor()
-            .named("terminal")
-            .getNamed()
-            (SendEvent(event::make_event(DrumlinEventThreadWork, "next-char")));
-        }
+        // {
+        //     ThreadAccessor()
+        //     .named("terminal")
+        //     .getNamed()
+        //     (SendEvent(event::make_event(DrumlinEventThreadWork, "next-char")));
+        // }
     }
     virtual bool event(std::shared_ptr<Event> pevent)
     {
@@ -74,8 +76,10 @@ public:
             case DrumlinEventThreadNotify:
                 if (pevent->getName() == "beforeStart") {
                     EVENTLOG1(pevent, "preparing...");
-                } else {
+                    return true;
+                } else if (pevent->getName() == "beforeWork"){
                     EVENTLOG(pevent);
+                    return true;
                 }
                 {
                     ThreadAccessor()
