@@ -37,6 +37,11 @@ bool Terminator::event(std::shared_ptr<Event> pevent)
                 {LOGLOCK;Debug() << "Terminator:" << event;}
             }
             return true;
+        case DrumlinEventThreadWork:
+            if (event == "tick") {
+                return true;
+            }
+            return false;
         default:
             return false;
     }

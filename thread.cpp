@@ -181,6 +181,9 @@ void Thread::run()
                 exec();
             }
             localMutex.unlock();
+            if(!event(event::make_event(DrumlinEventThreadWork,"tick"))) {
+                break;
+            }
             boost::this_thread::yield();
             boost::this_thread::sleep(boost::posix_time::milliseconds(100));
         }

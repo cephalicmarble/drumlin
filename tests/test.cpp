@@ -73,6 +73,12 @@ public:
     {
         switch(pevent->type())
         {
+            case DrumlinEventThreadWork:
+                if (pevent->getName() == "tick") {
+                    EVENTLOG1(pevent, "ticking...");
+                    return true;
+                }
+                return false;
             case DrumlinEventThreadNotify:
                 if (pevent->getName() == "beforeStart") {
                     EVENTLOG1(pevent, "preparing...");
