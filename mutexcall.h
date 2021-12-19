@@ -40,7 +40,7 @@ class Continuer
 {
     std::recursive_mutex mutex;
 public:
-    typedef typename Call::Return Param;
+    typedef typename Call::Param Param;
     /**
      * @brief Continuer : sets the QMutex::Recursive flag
      */

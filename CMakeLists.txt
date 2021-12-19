@@ -62,7 +62,7 @@ foreach(DIR ${TESTS})
     endif()
     # always add these
     # always link these
-    target_link_libraries(${target} "-lunwind -lpthread -lgtest")
+    target_link_libraries(${target} "-lunwind -lpthread -lgtest -lmd")
     target_link_libraries(${target} ${Boost_LIBRARIES})
 endforeach()
 
