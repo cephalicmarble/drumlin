@@ -1,6 +1,7 @@
 #ifndef _USABLE_H
 #define _USABLE_H
 
+#include "drumlin.h"
 #include "allocator.h"
 #include "buffer.h"
 
@@ -22,25 +23,23 @@ public:
     UsableBuffer(byte* alloc, UseIdent const& use, string_list const& params)
     :Buffers::HeapBuffer(alloc, sizeof(*this), use),m_instance(params)
     {
+        APLATE;
         assert(alloc == this);
     }
     virtual ~UsableBuffer()
     {
+        BPLATE;
         &m_instance->~T();
     }
-    template <>
     T& getInstance() {
         return m_instance;
     }
-    template <>
     T *getInstancePtr() {
         return &m_instance;
     }
-    template <>
     operator T() {
         return m_instance;
     }
-    template <>
     T* operator ->() {
         return &m_instance;
     }
@@ -52,10 +51,10 @@ public:
 
 template <typename T>
 std::shared_ptr<UsableBuffer<T>>
-make_usable_buffer(std::weak_ptr<UsesAllocator> const& uses, UseIdent const& ident, string_list const& params)
+make_usable_buffer(UsesAllocator* uses, UseIdent const& ident, string_list const& params)
 {
     std::shared_ptr<UsableBuffer<T>> buffer(
-             new (drumlin::Buffers::allocator.getHeap(ident.getUse())) UsableBuffer<T>
+             new (drumlin::Buffers::allocator.getHeap(uses)) UsableBuffer<T>
         );
     return buffer;
 }

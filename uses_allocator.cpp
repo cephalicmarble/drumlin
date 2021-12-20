@@ -11,18 +11,20 @@
 namespace drumlin {
 
 UsesAllocator::UsesAllocator(std::string _token)
-: m_token(_token)
+: base(), m_token(_token)
 {
     APLATE;
 }
 
 UsesAllocator::UsesAllocator(UsesAllocator & rhs)
+: base()
 {
     APLATE;
     *this = rhs;
 }
 
 UsesAllocator::UsesAllocator(UsesAllocator && rvalue)
+: base()
 {
     PLATE1("rvalue");
     *this = rvalue;
@@ -90,15 +92,16 @@ void UsesAllocator::getStatus(json::value *status)
     status->get_object().insert({"actions","chart,record"});
 }
 
-void UsesAllocator::report(json::value *obj,ReportType type)const
+void UsesAllocator::report(json::value *obj,ReportType type)
 {
     obj->get_object().insert({std::string("process"),m_process.count()});
     if(type & WorkObject::ReportType::Memory){
-        const Buffers::heap_t *heap(Allocator(CPS_call_void(Buffers::getHeap,dynamic_cast<const UsesAllocator*>(this))));
-        if(!heap)
-            return;
-        obj->get_object().insert({"allocated",heap->allocated * heap->size});
-        obj->get_object().insert({"reserved",heap->max});
+        CPS_call([&obj](Buffers::heap_ptr_type heap)->void{
+            if(!heap)
+                return;
+            obj->get_object().insert({"allocated",heap->allocated * heap->size});
+            obj->get_object().insert({"reserved",heap->max});
+        }, Buffers::getHeap, this);
     }
 }
 

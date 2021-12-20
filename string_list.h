@@ -11,10 +11,12 @@ using namespace std;
 #include <boost/algorithm/string.hpp>
 #include <boost/any.hpp>
 using namespace boost;
+#include <map>
+#include <string>
 
 namespace drumlin {
 
-typedef map<string, string> attribute_list;
+typedef std::map<std::string, std::string> attribute_list;
 
 class string_list : public std::list<string>
 {

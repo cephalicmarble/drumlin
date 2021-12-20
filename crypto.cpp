@@ -46,12 +46,12 @@ std::array<uint8_t, SHA256_DIGEST_LENGTH> Crypto::sha256(void *buf, guint32 leng
     return results;
 }
 
-std::string &&Crypto::sha256(std::string const& data)
+std::string Crypto::sha256(std::string const& data)
 {
     std::string str;
     std::array<byte, SHA256_DIGEST_LENGTH> chars(sha256((void*)data.c_str(), data.length()));
     std::copy(chars.begin(), chars.end(), std::back_inserter<std::string>(str));
-    return std::move(str);
+    return str;
 }
 
 } // namespace Crypto

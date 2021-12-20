@@ -57,14 +57,14 @@ string_list::operator attribute_list()const
 {
     attribute_list map;
     int ordinal = 0;
-    for_each(begin(), end(), [&ordinal, &map](std::string &item){
+    for(auto &item : *this) {
         auto lpos(item.find('='));
         if(item.begin() + lpos != item.end()) {
             map.insert({item.substr(0, lpos), item.substr(lpos + 1)});
         } else {
             map.insert({boost::lexical_cast<std::string>(ordinal++), item});
         }
-    });
+    }
     return map;
 }
 
@@ -79,7 +79,7 @@ string_list string_list::namesOnly(bool strict)const
 {
     string_list names;
     std::for_each(begin(), end(),
-        [&names, strict](std::string &item){
+        [&names, strict](std::string const& item){
         auto lpos(item.find('='));
         if(item.begin() + lpos != item.end()) {
             names.push_back(item.substr(0, lpos));
@@ -128,7 +128,8 @@ string_list &operator<< (string_list &vecS,char* str)
 string_list & operator<< (string_list &vecS,std::pair<std::string,boost::any const&> const& pair)
 {
     std::stringstream ss;
-    ss << pair.first << "=" << boost::lexical_cast<std::string>(pair.second);
+    ss << pair.first << "=";
+    boost::mpl::for_each<value_types>(drumlin::stream_operator_impl(ss,pair.second));
     vecS.push_back(ss.str());
     return vecS;
 }

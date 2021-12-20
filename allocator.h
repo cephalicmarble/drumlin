@@ -3,7 +3,7 @@
 
 #include <memory>
 #include <list>
-#include <map>
+#include <unordered_map>
 #include <mutex>
 #include <utility>
 #include "tao_forward.h"
@@ -27,9 +27,9 @@ struct heap_t {
     int allocated;
     int total;
     size_t size;
-    size_t align;
     void *memory;
     void *_free;
+    size_t align;
     int max;
     typedef std::list<std::pair<byte*,byte*>> array_t;
     array_t blocks;
@@ -40,12 +40,12 @@ protected:
     byte *_align(void *ptr);
 public:
     void free(byte *block);
-
+    int freeAll();
     void toJson(json::value *status);
 };
-typedef std::weak_ptr<UsesAllocator> heap_key_type;
+typedef UsesAllocator* heap_key_type;
 typedef std::shared_ptr<heap_t> heap_value_type;
-typedef std::map<heap_key_type, heap_value_type> heap_map_type;
+typedef std::unordered_map<heap_key_type, heap_value_type> heap_map_type;
 typedef std::shared_ptr<heap_t> heap_ptr_type;
 
 /**
@@ -55,33 +55,28 @@ class Allocator
 {
 protected:
     heap_map_type m_heaps;
-    int do_unregisterHeap(heap_map_type::value_type pair);
+    int do_unregisterHeap(heap_key_type, heap_value_type second);
 public:
     std::recursive_mutex m_mutex;
     Allocator();
     ~Allocator();
-    heap_ptr_type registerUse(heap_key_type &source, size_t alignment);
-    int unregisterUse(heap_key_type &source);
-    int unregisterAll();
-    heap_ptr_type getHeap(std::weak_ptr<UsesAllocator> source);
-    int free(std::shared_ptr<HeapBuffer>);
+    heap_ptr_type registerUse(std::pair<heap_key_type, guint32> source);
+    int unregisterUse(heap_key_type source);
+    int unregisterAll(int);
+    heap_ptr_type getHeap(heap_key_type source);
     int getStatus(json::value *status);
 };
 
-typedef mutex_call_1<Allocator,int,UsesAllocator*> registerUse_t;
-typedef mutex_call_1<Allocator,int,UsesAllocator*> unregisterUse_t;
-typedef mutex_call_1<Allocator,int,int> unregisterAll_t;
-typedef mutex_call_1<Allocator,const heap_t*,std::weak_ptr<UsesAllocator>> getHeap_t;
-typedef mutex_call_1<Allocator,void*,std::shared_ptr<HeapBuffer>> alloc_t;
-typedef mutex_call_1<Allocator,int,std::shared_ptr<HeapBuffer>> free_t;
-typedef mutex_call_1<Allocator,int,json::value*> getAllocatorStatus_t;
+typedef mutex_call_1<Allocator, heap_ptr_type,  std::pair<heap_key_type, guint32>>  registerUse_t;
+typedef mutex_call_1<Allocator, int,            heap_key_type>                      unregisterUse_t;
+typedef mutex_call_1<Allocator, int,            int>                                unregisterAll_t;
+typedef mutex_call_1<Allocator, heap_ptr_type,  heap_key_type>                      getHeap_t;
+typedef mutex_call_1<Allocator, int,            json::value*>                       getAllocatorStatus_t;
 
 extern registerUse_t registerUse;
 extern unregisterUse_t unregisterUse;
 extern unregisterAll_t unregisterAll;
 extern getHeap_t getHeap;
-extern alloc_t alloc;
-extern free_t free;
 extern getAllocatorStatus_t getAllocatorStatus;
 
 extern Allocator allocator;

@@ -58,8 +58,8 @@ public:
 class Acceptor
 {
 public:
-    virtual void accept(std::weak_ptr<Buffers::HeapBuffer> buffer)=0;
-    virtual void flush(std::weak_ptr<Buffers::HeapBuffer> buffer)=0;
+    virtual void accept(Buffers::HeapBuffer * buffer)=0;
+    virtual void flush(Buffers::HeapBuffer * buffer)=0;
 };
 
 extern std::pair<UseIdent,Buffers::Acceptor*> make_sub(UseIdent rel,Acceptor *a);

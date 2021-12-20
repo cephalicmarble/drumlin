@@ -3,8 +3,10 @@
 
 #include <iterator>
 #include <memory>
+#include <functional>
 #include <boost/any.hpp>
 #include <boost/uuid/uuid.hpp>
+#include <boost/container_hash/hash.hpp>
 #include "tao_forward.h"
 using namespace tao;
 #include "string_list.h"
@@ -23,13 +25,13 @@ class TickRange;
  */
 class UseIdent
 {
-    std::weak_ptr<UsesAllocator> m_source;
+    UsesAllocator* m_source;
     string m_source_name = "";
     string_list m_specification;
     guint32 m_tick = 0;
 public:
     UseIdent();
-    UseIdent(std::weak_ptr<UsesAllocator> source);
+    UseIdent(UsesAllocator* source);
     UseIdent(const UseIdent &rhs);
     UseIdent(UseIdent &&rel);
 
@@ -40,13 +42,16 @@ public:
     string_list const& getSpecification()const;
     std::string getHash()const;
 
-    void setUse(std::weak_ptr<UsesAllocator> &&_source);
-    std::weak_ptr<UsesAllocator> const& getUse()const;
+    void setUse(UsesAllocator*);
+    UsesAllocator* getUse()const;
 
     bool hasComponent(std::string const&)const;
 
     void operator=(const UseIdent &);
     void operator=(UseIdent &&);
+    bool operator<(UseIdent &rhs);
+    bool operator==(UseIdent const&);
+    bool operator==(UseIdent const&)const;
 
     void toJson(json::value *object)const;
 
@@ -56,6 +61,7 @@ public:
 
     friend SourcesOnly;
     friend TickRange;
+    friend struct std::hash<UseIdent>;
 };
 
 //UseIdent use(UsesAllocator*)
@@ -68,10 +74,10 @@ class LogicalNotFilter;
 class UseIdentFilter {
 protected:
     UseIdent m_ident;
+public:
     UseIdentFilter();
     UseIdentFilter(UseIdent &lhs);
     UseIdentFilter(UseIdentFilter &lhs)=default;
-public:
     operator UseIdent()const;
     UseIdentFilter(UseIdentFilter const&)=default;
     virtual ~UseIdentFilter(){}
@@ -147,5 +153,19 @@ extern UseIdent &operator<<(UseIdent & use, std::pair<std::string, boost::any co
 extern logger &operator<<(logger &stream, UseIdent &rhs);
 
 } // namespace drumlin
+
+template<>
+struct std::hash<drumlin::UseIdent>
+{
+    std::size_t operator()(drumlin::UseIdent const& s) const noexcept
+    {
+        std::size_t seed = 0;
+        boost::hash_combine(seed, std::hash<guint64>{}((guint64)s.m_source));
+        boost::hash_combine(seed, std::hash<std::string>{}(s.m_source_name));
+        boost::hash_combine(seed, std::hash<std::string>{}(s.m_specification.toString()));
+        boost::hash_combine(seed, std::hash<guint32>{}(s.m_tick));
+        return seed;
+    }
+};
 
 #endif // _USE_IDENT_H

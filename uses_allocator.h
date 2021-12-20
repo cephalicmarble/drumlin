@@ -27,7 +27,10 @@ namespace Buffers {
  * migration from one to the other.
  */
 class UsesAllocator
+    : public std::enable_shared_from_this<UsesAllocator>
 {
+    typedef std::enable_shared_from_this<UsesAllocator> base;
+
     std::weak_ptr<ThreadWorker> m_worker;
 
     guint32 m_data_length;                  // sizeof
@@ -62,7 +65,7 @@ public:
     }
 
     template <typename T>
-    std::shared_ptr<UsableBuffer<T>> alloc(std::weak_ptr<UsesAllocator> uses)
+    std::shared_ptr<UsableBuffer<T>> alloc(Buffers::heap_key_type uses)
     {
         auto heap(Buffers::allocator.getHeap(uses));
         return new(heap) UsableBuffer<T>;
@@ -71,13 +74,15 @@ public:
     int free(UsableBuffer<T> *buffer)
     {
         auto heap(getHeap(buffer->getUseIdent()->getUse()));
-        buffer->~UsableBuffer<T>();
+        buffer->~HeapBuffer();
+        int ret = buffer->length();
         heap->free((byte*)buffer);
+        return ret;
     }
 
     void getStatus(json::value *status);
 
-    void report(json::value *obj,ReportType type)const;
+    void report(json::value *obj,ReportType type);
 };
 
 } // namespace drumlin

@@ -50,7 +50,7 @@ guint32 BufferCache::addAllocated(buffers_heap_map_type::value_type const& pair)
     int n = 0;
     std::for_each(pair.second->blocks.begin(), pair.second->blocks.end(),
         [this, &n](auto & heap){
-            publish(heap.second);
+            publish((HeapBuffer*)heap.second);
             ++n;
         });
     return n;
@@ -83,22 +83,20 @@ guint32 BufferCache::addAllocated(buffers_heap_map_type::value_type const& pair)
  */
 guint32 BufferCache::clearAllocated(UseIdentFilter use)
 {
-    buffers_container_type::iterator it(std::find_if(m_buffers.begin(), m_buffers.end(),
-        [use](buffers_container_type::value_type & pair){
-            return use == pair.first;
-        }));
+    std::vector<buffers_heap_map_type::value_type> pairs;
     int n = 0;
-    if(it != m_buffers.end()) {
-        std::for_each(it->second->blocks.begin(), it->second->blocks.end(), [&n](heap_t::array_t::value_type &pair){
-            ((HeapBuffer*)pair.second)->~HeapBuffer();
-            pair.first = nullptr;
-            ++n;
+    std::for_each(m_buffers.begin(), m_buffers.end(),
+        [&n, &pairs, use]
+        (buffers_heap_map_type::value_type & pair) {
+            if(use == pair.first) {
+                n += pair.second->freeAll();
+                pairs.push_back(pair);
+            }
         });
+    for(auto it : pairs)
+    {
+        m_buffers.erase(std::remove(m_buffers.begin(), m_buffers.end(), it));
     }
-    m_buffers.erase(std::remove_if(m_buffers.begin(),m_buffers.end(),
-        [use](buffers_container_type::value_type &pair){
-            return use == pair.first;
-        }),m_buffers.end());
     return n;
 }
 
@@ -110,10 +108,14 @@ guint32 BufferCache::clearAllocated(UseIdentFilter use)
 buffer_list_type BufferCache::findRelevant(UseIdentFilter use)
 {
     buffer_list_type relevant;
-    std::copy_if(m_buffers.begin(), m_buffers.end(), std::back_inserter(relevant),
-        [use](buffers_container_type::value_type &buffer){
+    std::for_each(m_buffers.begin(), m_buffers.end(),
+        [&relevant, use](auto & buffer){
             {LOGLOCK;Debug() << "Cache" << __func__ << buffer.first;}
-            return use == buffer.first;
+            if(use == buffer.first) {
+                for(auto & block : buffer.second->blocks) {
+                    relevant.push_back((HeapBuffer*)block.second);
+                }
+            }
         });
     return relevant;
 }
@@ -125,21 +127,23 @@ buffer_list_type BufferCache::findRelevant(UseIdentFilter use)
  */
 buffer_list_type BufferCache::subscribe(subs_map_type::value_type sub)
 {
-    m_subscriptions.insert(sub);
+    m_subscriptions.push_back(sub);
     return findRelevant(sub.first);
 }
 
 int BufferCache::unsubscribe(subs_map_type::value_type::second_type &acceptor)
 {
     int n = 0;
-    m_subscriptions.erase(std::remove_if(m_subscriptions.begin(), m_subscriptions.end(),
-        [acceptor, &n](auto & sub) {
-            if (sub.second == acceptor) {
-                ++n;
-                return true;
-            }
-            return false;
-        }));
+    std::vector<subs_map_type::iterator> pairs;
+    for(auto it(m_subscriptions.begin()); it != m_subscriptions.end(); ++it) {
+        if (it->second == acceptor) {
+            ++n;
+            pairs.push_back(it);
+        }
+    }
+    for(auto & p : pairs) {
+        m_subscriptions.erase(p);
+    }
     return n;
 }
 
@@ -149,7 +153,7 @@ int BufferCache::unsubscribe(subs_map_type::value_type::second_type &acceptor)
  * @param flush bool
  * @return guint32 number of transforms called
  */
-guint32 BufferCache::publish(std::shared_ptr<HeapBuffer> buffer)
+guint32 BufferCache::publish(HeapBuffer * buffer)
 {
     guint32 c(0);
     for(subs_map_type::value_type &sub : m_subscriptions)
@@ -188,7 +192,10 @@ findRelevant_t findRelevant(&BufferCache::findRelevant);
 subscribe_t subscribe(&BufferCache::subscribe);
 unsubscribe_t unsubscribe(&BufferCache::unsubscribe);
 publish_t publish(&BufferCache::publish);
-getStatus_t getStatus(&BufferCache::getStatus);
+getCacheStatus_t getCacheStatus(&BufferCache::getStatus);
+
+BufferCache access::s_cache;
+Allocator access::s_allocator;
 
 } // namespace Buffers
 

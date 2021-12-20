@@ -19,10 +19,10 @@ UseIdent::UseIdent()
 {
 }
 
-UseIdent::UseIdent(std::weak_ptr<UsesAllocator> source)
+UseIdent::UseIdent(UsesAllocator* source)
 : m_source(source)
 {
-    m_source_name = source.lock()->getToken();
+    m_source_name = source->getToken();
 }
 
 /**
@@ -70,20 +70,20 @@ std::string UseIdent::getHash()const
     return crypto::Crypto::sha256(spec);
 }
 
-void UseIdent::setUse(std::weak_ptr<UsesAllocator> &&_source)
+void UseIdent::setUse(UsesAllocator*uses)
 {
-    m_source = std::move(_source);
-    m_source_name = m_source.lock()->getToken();
+    m_source = uses;
+    m_source_name = m_source->getToken();
 }
 
-std::weak_ptr<UsesAllocator> const& UseIdent::getUse()const
+UsesAllocator* UseIdent::getUse()const
 {
     return m_source;
 }
 
 bool UseIdent::hasComponent(std::string const& name)const{
     return m_specification.end() !=
-        std::find_if(m_specification.begin(), m_specification.end(), [name](string_list::value_type & attribute){
+        std::find_if(m_specification.begin(), m_specification.end(), [name](auto & attribute){
             return name == attribute.substr(0, attribute.find('='));
         });
 }
@@ -110,6 +110,26 @@ void UseIdent::operator=(UseIdent && rhs)
     std::swap(m_source_name, rhs.m_source_name);
     std::swap(m_source, rhs.m_source);
     std::swap(m_tick, rhs.m_tick);
+}
+
+bool UseIdent::operator<(UseIdent &rhs)
+{
+    return m_source < rhs.m_source &&
+        m_tick < rhs.m_tick &&
+        std::distance(m_specification.begin(), m_specification.end()) <
+            std::distance(rhs.m_specification.begin(), rhs.m_specification.end());
+}
+
+bool UseIdent::operator==(UseIdent const& rhs) {
+    return m_source == rhs.m_source &&
+        m_tick == rhs.m_tick &&
+        m_specification == rhs.m_specification;
+}
+
+bool UseIdent::operator==(UseIdent const& rhs) const {
+    return m_source == rhs.m_source &&
+        m_tick == rhs.m_tick &&
+        m_specification == rhs.m_specification;
 }
 
 void UseIdent::toJson(json::value *object)const
@@ -150,7 +170,7 @@ UseIdentFilter::operator UseIdent()const
 }
 UseIdentFilter::UseIdentFilter(){}
 UseIdentFilter::UseIdentFilter(UseIdent &lhs):m_ident(lhs){}
-bool UseIdentFilter::operator==(UseIdent const& rhs)const{ return false; }
+bool UseIdentFilter::operator==(UseIdent const&)const{ return false; }
 LogicalAndFilter UseIdentFilter::operator&&(const UseIdentFilter &rhs)const
 {
     return LogicalAndFilter(*this, rhs);

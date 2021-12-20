@@ -6,6 +6,7 @@
 #include <vector>
 #include <deque>
 #include <utility>
+#include <unordered_map>
 #include "tao_forward.h"
 using namespace tao;
 #include "buffer.h"
@@ -15,22 +16,17 @@ namespace drumlin {
 namespace Buffers {
 
 /**
- * @brief heap_label_type
- * These UseIdent will be {m_source,m_tick}
- */
-typedef std::deque<std::pair<UseIdent, heap_ptr_type>> buffers_container_type;
-/**
  * @brief buffer_list_type :
  */
-typedef std::map<UseIdent, heap_ptr_type> buffers_heap_map_type;
+typedef std::list<std::pair<UseIdent, heap_ptr_type>> buffers_heap_map_type;
 /**
  * @brief buffer_vec_type :
  */
-typedef std::list<HeapBuffer> buffer_list_type;
+typedef std::list<HeapBuffer*> buffer_list_type;
 /**
  * @brief subs_map_type : relates a Buffers::Acceptor to a UseIdent
  */
-typedef std::map<UseIdentFilter,Acceptor*> subs_map_type;
+typedef std::list<std::pair<UseIdentFilter,Acceptor*>> subs_map_type;
 
 std::pair<const UseIdent,Buffers::Acceptor*> make_sub(const UseIdent &rel,Acceptor *a);
 
@@ -42,7 +38,7 @@ class BufferCache
     static BufferCache cache;
     BufferCache();
 protected:
-    buffers_container_type m_buffers;
+    buffers_heap_map_type m_buffers;
     subs_map_type m_subscriptions;
 public:
     std::mutex m_mutex;
@@ -58,7 +54,7 @@ public:
     buffer_list_type findRelevant(UseIdentFilter);
     buffer_list_type subscribe(subs_map_type::value_type);
     int unsubscribe(subs_map_type::value_type::second_type&);
-    guint32 publish(std::shared_ptr<HeapBuffer> buffer);
+    guint32 publish(HeapBuffer* buffer);
     int getStatus(json::value *status);
     friend struct access;
 };
@@ -70,8 +66,8 @@ typedef mutex_call_1<BufferCache,guint32,UseIdentFilter> clearAllocated_t;
 typedef mutex_call_1<BufferCache,buffer_list_type,UseIdentFilter> findRelevant_t;
 typedef mutex_call_1<BufferCache,buffer_list_type,subs_map_type::value_type> subscribe_t;
 typedef mutex_call_1<BufferCache,int,subs_map_type::value_type::second_type&> unsubscribe_t;
-typedef mutex_call_1<BufferCache,guint32,std::shared_ptr<HeapBuffer>> publish_t;
-typedef mutex_call_1<BufferCache,int,json::value *> getStatus_t;
+typedef mutex_call_1<BufferCache,guint32,HeapBuffer*> publish_t;
+typedef mutex_call_1<BufferCache,int,json::value *> getCacheStatus_t;
 
 extern addAllocated_t addAllocated;
 extern clearAllocated_t clearAllocated;
@@ -79,9 +75,7 @@ extern findRelevant_t findRelevant;
 extern subscribe_t subscribe;
 extern unsubscribe_t unsubscribe;
 extern publish_t publish;
-extern getStatus_t getCacheStatus;
-
-extern BufferCache cache;
+extern getCacheStatus_t getCacheStatus;
 
 struct access
 {
@@ -96,7 +90,7 @@ struct access
         while(!s_cache.m_mutex.try_lock()){
             boost::this_thread::yield();
         }
-        typename CPS::Return ret(cps(&cache));
+        typename CPS::Return ret(cps(&s_cache));
         s_cache.m_mutex.unlock();
         return ret;
     }
