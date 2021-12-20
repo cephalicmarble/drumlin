@@ -14,7 +14,7 @@ string string_list::join(string str)
 
 string string_list::join(const char*pc)
 {
-    return join(string(pc));
+    return join(string(pc ? pc : ""));
 }
 
 string_list string_list::fromString(string const& toSplit,const char* delim,bool all,algorithm::token_compress_mode_type flags)
@@ -139,12 +139,6 @@ string_list & operator<< (string_list &vecS,std::pair<std::string,std::string> c
     std::stringstream ss;
     ss << pair.first + "=" + pair.second;
     vecS.push_back(ss.str());
-    return vecS;
-}
-
-string_list & operator<< (string_list &vecS,std::string str)
-{
-    vecS.push_back(str);
     return vecS;
 }
 

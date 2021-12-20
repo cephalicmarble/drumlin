@@ -31,8 +31,6 @@ applicationbase.h
 applicationbase.cpp
 string_list.h
 string_list.cpp
-terminator.h
-terminator.cpp
 allocator.h
 allocator.cpp
 uses_allocator.h

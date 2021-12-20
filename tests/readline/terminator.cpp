@@ -1,8 +1,8 @@
 #include "terminator.h"
 
-#include "drumlin.h"
-#include "thread_worker.h"
-#include "thread_accessor.h"
+#include "../../drumlin.h"
+#include "../../thread_worker.h"
+#include "../../thread_accessor.h"
 
 Terminator::Terminator()
 : ThreadWorker(ThreadType_terminator)

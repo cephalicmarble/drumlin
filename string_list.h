@@ -29,7 +29,7 @@ public:
     friend string_list& operator<< (string_list &vecS,std::pair<std::string,boost::any const&> const& pair);
     friend string_list& operator<< (string_list &vecS,std::pair<std::string,std::string> const& pair);
     string join(string str);
-    string join(const char*pc);
+    string join(const char*pc = 0);
     static string_list fromString(string const& toSplit,string delim,bool all = false,algorithm::token_compress_mode_type = algorithm::token_compress_on);
     static string_list fromString(string const& toSplit,const char* delim,bool all = false,algorithm::token_compress_mode_type = algorithm::token_compress_on);
     static string_list fromString(string const& toSplit,const char delim,bool all = false,algorithm::token_compress_mode_type = algorithm::token_compress_on);
@@ -53,7 +53,6 @@ extern string_list & operator<< (string_list&,string const& str);
 extern string_list & operator<< (string_list&,const char* str);
 extern string_list & operator<< (string_list&,string & str);
 extern string_list & operator<< (string_list&,char* str);
-extern string_list & operator<< (string_list &vecS,std::string str);
 extern string_list & operator<< (string_list &vecS,std::pair<std::string,boost::any const&> const& pair);
 extern string_list & operator<< (string_list &vecS,std::pair<std::string,std::string> const& pair);
 

@@ -3,16 +3,16 @@
 #include <iostream>
 #include <utility>
 
-#include "../main_tao.hpp"
-#include "../application.h"
-#include "../signalhandler.h"
-#include "../thread.h"
-#include "../thread_worker.h"
-#include "../thread_accessor.h"
-#include "../terminator.h"
+#include "main_tao.hpp"
+#include "application.h"
+#include "signalhandler.h"
+#include "thread.h"
+#include "thread_worker.h"
+#include "thread_accessor.h"
+#include "terminator.h"
 #define TAOJSON
-#include "../tao_forward.h"
-#include "../../gremlin/compat.h"
+#include "tao_forward.h"
+#include "../gremlin/compat.h"
 
 namespace drumlin {
 
