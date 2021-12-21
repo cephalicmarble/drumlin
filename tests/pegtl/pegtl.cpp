@@ -120,6 +120,7 @@ int main(int argc, char **argv)
     }
     std::string instr(argv[1]);
     std::string source("cmdline");
+    bool finished = true;
     tao::pegtl::memory_input< tao::pegtl::tracking_mode::eager,
      tao::pegtl::eol::crlf > in( argv[1], argv[1]+instr.length(), source );
     try{
@@ -131,12 +132,16 @@ int main(int argc, char **argv)
     }catch(tao::pegtl::parse_error &e){
         const auto p = e.positions().front();
         std::cerr << e.what() << std::endl << in.line_at( p )<< '\n' << std::setw( p.column ) << '^' << std::endl;
+        finished = false;
     }catch(std::logic_error &e) {
         std::cerr << e.what() << std::endl;
+        finished = false;
     }catch(drumlin::Exception &e) {
         std::cerr << e.what();
+        finished = false;
     }
-    std::cout << "finished." << std::endl;
+    if(finished)
+        std::cout << "finished." << std::endl;
     std::cout << grammar::state::s_ss.str();
     return 0;
 }
