@@ -53,9 +53,12 @@ template <typename T>
 std::shared_ptr<UsableBuffer<T>>
 make_usable_buffer(UsesAllocator* uses, UseIdent const& ident, string_list const& params)
 {
-    std::shared_ptr<UsableBuffer<T>> buffer(
-             new (drumlin::Buffers::allocator.getHeap(uses)) UsableBuffer<T>
-        );
+    std::shared_ptr<UsableBuffer<T>> buffer;
+    CPS_call([&buffer](Buffers::getHeap_t::Return & heap){
+        if(!heap)return;
+        UsableBuffer<T> *ptr(new (heap) UsableBuffer<T>);
+        buffer.reset(ptr);
+    }, Buffers::getHeap, uses);
     return buffer;
 }
 

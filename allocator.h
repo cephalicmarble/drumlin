@@ -20,6 +20,20 @@ namespace Buffers {
 
 #define PAGE_SHIFT 12UL
 
+struct pairBytes {
+    typedef byte* first_type;
+    first_type first;
+    typedef byte *second_type;
+    second_type second;
+    pairBytes(first_type &_first, second_type &_second)
+    :first(_first), second(_second)
+    {}
+};
+
+struct memory {
+    typedef std::list<pairBytes> array_t;
+};
+
 /**
  * @brief buffer_heap_type : where buffers go to die...
  */
@@ -31,8 +45,7 @@ struct heap_t {
     void *_free;
     size_t align;
     int max;
-    typedef std::list<std::pair<byte*,byte*>> array_t;
-    array_t blocks;
+    memory::array_t blocks;
     heap_t(int _total,size_t _size,void *_memory,void *__free,size_t _align,int _max);
     ~heap_t();
     byte *alloc();
@@ -78,8 +91,6 @@ extern unregisterUse_t unregisterUse;
 extern unregisterAll_t unregisterAll;
 extern getHeap_t getHeap;
 extern getAllocatorStatus_t getAllocatorStatus;
-
-extern Allocator allocator;
 
 } // namespace Buffers
 

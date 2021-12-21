@@ -1,9 +1,9 @@
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include <iostream>
 #include <utility>
 
-#include "main_tao.hpp"
+#include "main_tao.h"
 #include "application.h"
 #include "signalhandler.h"
 #include "thread.h"
@@ -13,6 +13,7 @@
 #define TAOJSON
 #include "tao_forward.h"
 #include "../gremlin/compat.h"
+#include "behaviour.h"
 
 namespace drumlin {
 
@@ -30,20 +31,8 @@ public:
     {
         BPLATE;
     }
-    virtual void writeToStream(std::ostream &stream)const {
-        stream << "ApplicationWorker" << std::endl;
-    }
-    virtual void writeToObject(json::value *obj)const {
-        obj->get_object().insert({std::string("ApplicationWorker"),std::string("writeToObject")});
-    }
-    virtual void getStatus(json::value *obj)const {
-        obj->get_object().insert({std::string("ApplicationWorker"),std::string("getStatus")});
-    }
     virtual void shutdown() {
         PLATE;
-    }
-    virtual void report(json::value *obj/*,ReportType type*/)const {
-        obj->get_object().insert({std::string("ApplicationWorker"),std::string("report")});
     }
     virtual void work(Object *,std::shared_ptr<Event> pevent) {
         if (pevent->getName() == "run-tests") {
@@ -62,12 +51,6 @@ public:
         } else if(pevent->getName() == "work") {
             EVENTLOG1(pevent, "working...");
         }
-        // {
-        //     ThreadAccessor()
-        //     .named("terminal")
-        //     .getNamed()
-        //     (SendEvent(event::make_event(DrumlinEventThreadWork, "next-char")));
-        // }
     }
     virtual bool event(std::shared_ptr<Event> pevent)
     {

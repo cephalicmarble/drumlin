@@ -15,7 +15,7 @@ using namespace drumlin;
 
 namespace drumlin {
 
-typedef std::chrono::microseconds time_t;
+typedef std::chrono::microseconds time_duration_t;
 
 }
 

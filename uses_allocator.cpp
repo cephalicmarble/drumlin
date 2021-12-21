@@ -61,7 +61,7 @@ UsesAllocator::~UsesAllocator()
     // Cache(CPS_call_void(Buffers::clearRelevantBuffers,&rel));
 }
 
-UsesAllocator UsesAllocator::withTauProcess(time_t tau, time_t process)
+UsesAllocator UsesAllocator::withTauProcess(time_duration_t tau, time_duration_t process)
 {
     return UsesAllocator(*this).setTau(tau).setProcessLength(process);
 }

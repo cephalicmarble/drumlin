@@ -1,8 +1,14 @@
 #include "terminator.h"
 
-#include "../../drumlin.h"
-#include "../../thread_worker.h"
-#include "../../thread_accessor.h"
+#include <stdio.h>
+#include <readline/readline.h>
+#include <readline/history.h>
+
+#include "drumlin/drumlin.h"
+#include "drumlin/thread_worker.h"
+#include "drumlin/thread_accessor.h"
+
+#include "behaviour.h"
 
 Terminator::Terminator()
 : ThreadWorker(ThreadType_terminator)
@@ -44,15 +50,26 @@ bool Terminator::event(std::shared_ptr<Event> pevent)
 
 void Terminator::run()
 {
+    // command.first,.second,.third
+    static string input = "[test-worker]:[]";
     //static char pr[] = {'c','#'};
     static char pr[] = {'s', 't', 'g', 'c'};
     static char *pc = pr;
     std::string str;
     if (std::distance(pr, pc++) > (int)sizeof(pr) - 1) {
-        std::cin >> str;
+
+        //std::cin >> str;
+        char *line(readline ("[readline] "));
+        std::string str(line);
+
+        tao::pegtl::parse< grammar::addition, grammar::my_action >( str );
     } else {
         str = *pc;
     }
+    // typedef std::pair<std::function<std::string()>, std::string> keyword;
+    // (str) {
+    //
+    // }
     switch(*str.begin()) {
         case 't':
             ThreadAccessor()

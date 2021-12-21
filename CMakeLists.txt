@@ -1,6 +1,7 @@
 project(drumlin)
 
-set(CMAKE_CXX_STANDARD 14)
+#set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set (CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(PkgConfig REQUIRED)
 set(PKGCONFIG "/usr/bin/pkg-config")
@@ -11,7 +12,6 @@ cmake_minimum_required(VERSION 3.6)
 
 find_package(Boost REQUIRED COMPONENTS system chrono date_time filesystem log program_options regex)
 
-set(CMAKE_CXX_STANDARD 14)
 find_package(PkgConfig REQUIRED)
 set(PKGCONFIG "/usr/bin/pkg-config")
 
@@ -63,6 +63,12 @@ foreach(DIR ${TESTS})
     foreach(FILE ${DRUMLIN_FILES})
       target_sources(${target} PRIVATE ./${FILE})
     endforeach()
+    if(EXISTS ./tests/${dirname}/${target}.link)
+        FILE(STRINGS ./tests/${dirname}/${target}.link LINK_FLAGS)
+        foreach(FLAG ${LINK_FLAGS})
+          target_link_libraries(${target} ${FLAG})
+        endforeach()
+    endif()
     execute_process(COMMAND ${PKGCONFIG} gtest --cflags OUTPUT_VARIABLE GTEST_CFLAGS)
     separate_arguments(GTEST_CFLAGS)
     foreach(FLAG IN LISTS GTEST_CFLAGS)
@@ -76,10 +82,12 @@ foreach(DIR ${TESTS})
             target_compile_definitions(${target} PUBLIC FLAG)
     	endif(FLAG MATCHES -D.*)
     endforeach()
+    target_include_directories(${target} PUBLIC BEFORE ./tests)
     target_include_directories(${target} PUBLIC BEFORE .)
+    target_include_directories(${target} PUBLIC BEFORE ..)
     # always add these
     # always link these
-    target_link_libraries(${target} "-lunwind -lpthread -lgtest -lmd")
+    target_link_libraries(${target} "-lunwind -lgtest -lmd")
     target_link_libraries(${target} ${Boost_LIBRARIES})
 endforeach()
 

@@ -94,13 +94,13 @@ byte *heap_t::alloc()
  */
 void heap_t::free(byte *block)
 {
-    array_t::iterator it(std::find_if(blocks.begin(),blocks.end(),[block](array_t::value_type &pair){
+    memory::array_t::iterator it(std::find_if(blocks.begin(),blocks.end(),[block](memory::array_t::value_type &pair){
         return pair.second == (byte*)block && pair.first != nullptr;
     }));
     if(it == blocks.end()){
         if (drumlin::debug)
         {
-            for(array_t::value_type &pair : blocks){
+            for(memory::array_t::value_type &pair : blocks){
                 {LOGLOCK;Debug() << (void*)pair.first << ":" << (void*)pair.second;}
             }
         }
@@ -113,7 +113,7 @@ void heap_t::free(byte *block)
 returning:
     if (drumlin::debug)
     {
-        for(array_t::value_type &pair : blocks){
+        for(memory::array_t::value_type &pair : blocks){
             {LOGLOCK;Debug() << (void*)pair.first << ":" << (void*)pair.second;}
         }
     }
@@ -122,7 +122,7 @@ returning:
 int heap_t::freeAll()
 {
     int n = 0;
-    std::for_each(blocks.begin(), blocks.end(), [&n](array_t::value_type &pair){
+    std::for_each(blocks.begin(), blocks.end(), [&n](memory::array_t::value_type &pair){
         if(pair.first != nullptr) {
             ++n;
             ((HeapBuffer*)pair.second)->~HeapBuffer();
@@ -273,8 +273,6 @@ unregisterUse_t unregisterUse(&Allocator::unregisterUse);
 unregisterAll_t unregisterAll(&Allocator::unregisterAll);
 getHeap_t getHeap(&Allocator::getHeap);
 getAllocatorStatus_t getAllocatorStatus(&Allocator::getStatus);
-
-Buffers::Allocator allocator;
 
 } // namespace Buffers
 
