@@ -5,10 +5,19 @@
 #include <cstdio>
 using namespace std;
 #include <boost/any.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/mpl/vector.hpp>
+#include <boost/mpl/for_each.hpp>
+#include <chrono>
 using namespace boost;
 #include "logger.h"
 using namespace drumlin;
+
+namespace drumlin {
+
+typedef std::chrono::microseconds time_duration_t;
+
+}
 
 #define Debug() if(drumlin::debug) drumlin::logger(std::cerr)
 #define Critical() drumlin::logger(std::cerr) << "********"

@@ -1,5 +1,7 @@
 byte_array.h
 byte_array.cpp
+crypto.h
+crypto.cpp
 logger.h
 logger.cpp
 application.cpp
@@ -29,6 +31,16 @@ applicationbase.h
 applicationbase.cpp
 string_list.h
 string_list.cpp
-terminator.h
-terminator.cpp
+allocator.h
+allocator.cpp
+uses_allocator.h
+uses_allocator.cpp
+uses_strides.h
+uses_strides.cpp
+use_ident.h
+use_ident.cpp
+buffer_cache.h
+buffer_cache.cpp
+buffer.h
+buffer.cpp
 ../gremlin/compat.h
