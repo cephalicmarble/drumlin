@@ -1,20 +1,21 @@
 #include "gtest/gtest.h"
+#include "drumlin/exception.h"
 
 namespace my {
 namespace project {
 namespace {
 
 // The fixture for testing class Foo.
-class FooTest : public ::testing::Test {
+class ExceptionTest : public ::testing::Test {
  protected:
   // You can remove any or all of the following functions if their bodies would
   // be empty.
 
-  FooTest() {
+  ExceptionTest() {
      // You can do set-up work for each test here.
   }
 
-  ~FooTest() override {
+  ~ExceptionTest() override {
      // You can do clean-up work that doesn't throw exceptions here.
   }
 
@@ -36,28 +37,22 @@ class FooTest : public ::testing::Test {
 };
 
 // Tests that the Foo::Bar() method does Abc.
-TEST_F(FooTest, MethodBarDoesAbc) {
-  const std::string input_filepath = "this/package/testdata/myinputfile.dat";
-  const std::string output_filepath = "this/package/testdata/myinputfile.dat";
-  EXPECT_EQ(input_filepath, output_filepath) << "different lengths also";
+TEST_F(ExceptionTest, ExceptionsRaiseAndAreCaught) {
+    try {
+        throw drumlin::Exception("drumlin");
+    } catch (drumlin::Exception &e) {
+        EXPECT_EQ(0, strncmp("drumlin", e.what(), 7));
+    }
 }
-
-template <typename T>
-bool IsEven(T value) { return (value % 2) == 0; }
 
 // Tests that Foo does Xyz.
-TEST_F(FooTest, DoesXyz) {
-  // Exercises the Xyz feature of Foo.
-  EXPECT_TRUE(::testing::internal::String::EndsWithCaseInsensitive("blargle", "argle"));
-  EXPECT_TRUE(IsEven(4));
-  ASSERT_EQ(1,1);
-}
+// TEST_F(FooTest, DoesXyz) {
+//   // Exercises the Xyz feature of Foo.
+//   EXPECT_TRUE(::testing::internal::String::EndsWithCaseInsensitive("blargle", "argle"));
+//   EXPECT_TRUE(IsEven(4));
+//   ASSERT_EQ(1,1);
+// }
 
 }  // namespace
 }  // namespace project
 }  // namespace my
-
-int main(int argc, char **argv) {
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

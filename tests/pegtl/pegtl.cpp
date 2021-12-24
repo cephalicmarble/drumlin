@@ -38,6 +38,7 @@ struct state {
     std::unique_ptr<std::stringstream> m_ss;
     state():m_ss(&s_ss)
     {
+        m_ss->clear();
         PLATE1("state()");
     }
     state(state & rhs):m_ss(rhs.m_ss.release())

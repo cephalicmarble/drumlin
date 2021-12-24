@@ -62,7 +62,7 @@ void Terminator::run()
         char *line(readline ("[readline] "));
         std::string str(line);
 
-        tao::pegtl::parse< grammar::addition, grammar::my_action >( str );
+        //tao::pegtl::parse< grammar::addition, grammar::my_action >( str );
     } else {
         str = *pc;
     }

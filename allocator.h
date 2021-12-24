@@ -5,7 +5,6 @@
 #include <list>
 #include <unordered_map>
 #include <mutex>
-#include <utility>
 #include "tao_forward.h"
 using namespace tao;
 #include "mutexcall.h"
