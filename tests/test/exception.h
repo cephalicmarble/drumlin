@@ -1,5 +1,5 @@
-#include "gtest/gtest.h"
-#include "drumlin/exception.h"
+#include <gtest/gtest.h>
+#include "../drumlin/exception.h"
 
 namespace my {
 namespace project {
