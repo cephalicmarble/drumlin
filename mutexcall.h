@@ -18,6 +18,7 @@ struct mutex_call_1
     typedef _Return Return;
     typedef _Param Param;
     typedef _Return (_Class::*func_type)(_Param);
+    typedef std::function<void(Return)> Callback;
     const func_type func;
     /**
      * @brief mutex_call_1::operator () : template function call operator
@@ -29,57 +30,22 @@ struct mutex_call_1
     {
         return (klass->*func)(param);
     }
-    mutex_call_1(const func_type &_func):func(_func){}
-};
-
-/**
- * @brief Continuer : subclass this for use with mutex_call_1
- */
-template <class Call>
-class Continuer
-{
-    std::recursive_mutex mutex;
-public:
-    typedef typename Call::Return Param;
-    /**
-     * @brief Continuer : sets the QMutex::Recursive flag
-     */
-    Continuer(){}
-    /**
-     * @brief ~Continuer : necessary
-     */
-    virtual ~Continuer(){}
-    /**
-     * @brief Continuer::accept : template accept function
-     * @param param template
-     */
-    virtual void accept(Call&,Param param)=0;
-    /**
-     * @brief lock : lock the mutex
-     */
-    void lock(){ mutex.lock(); }
-    /**
-     * @brief tryLock : tryLock the mutex
-     * @return
-     */
-    bool tryLock() { return mutex.try_lock(); }
-    /**
-     * @brief unlock : unlock the mutex
-     */
-    void unlock(){ mutex.unlock(); }
+    mutex_call_1(func_type _func):func(_func){}
 };
 
 /**
  * @brief CPS : template class for self-locking continuation passing style
  */
-template <class Call,class Continue>
-struct CPS {
+template <class Call>
+class CPS {
     typedef mutex_call_1<typename Call::Class,typename Call::Return,typename Call::Param> func_type;
-    Continue *continuer;
+    typedef std::function<void(typename Call::Return)> Func;
+    Func m_continuer;
+    func_type m_func;
+    typename Call::Param m_param;
     typedef typename Call::Return Return;
-    typename Call::Param param;
-    typename Call::Return ret;
-    func_type func;
+    typename Call::Return m_ret;
+public:
     /**
      * @brief CPS::operator () : template
      * @param klass template
@@ -87,14 +53,11 @@ struct CPS {
      */
     typename Call::Return operator()(typename Call::Class *klass)
     {
-        ret = func(klass,param);
-        if(continuer){
-            while(!continuer->tryLock())
-                boost::this_thread::yield();
-            continuer->accept(func,ret);
-            continuer->unlock();
+        m_ret = m_func(klass,m_param);
+        if(m_continuer){
+            m_continuer(m_ret);
         }
-        return ret;
+        return m_ret;
     }
     /**
      * @brief CPS::CPS : used by CPS_call and CPS_call_void
@@ -102,7 +65,7 @@ struct CPS {
      * @param _func template
      * @param _param template
      */
-    CPS(Continue *_continuer,func_type _func,typename Call::Param _param):continuer(_continuer),param(_param),func(_func){}
+    CPS(Func _continuer,func_type _func,typename Call::Param _param):m_continuer(_continuer),m_func(_func),m_param(_param){}
 };
 
 /**
@@ -136,11 +99,11 @@ struct CPS_void {
 /**
  * @brief CPS_call : template helper function to create call structures for thread-safe calls into objects
  */
-template <class Class,class Return,class Param,class Continue>
-CPS<mutex_call_1<Class,Return,Param>,Continue>
-CPS_call(Continue *_continuer,mutex_call_1<Class,Return,Param> _func,Param _param)
+template <class Class,class Return,class Param>
+CPS<mutex_call_1<Class,Return,Param>>
+CPS_call(typename mutex_call_1<Class,Return,Param>::Callback func,mutex_call_1<Class,Return,Param> _func,Param _param)
 {
-    return CPS<mutex_call_1<Class,Return,Param>,Continue>(_continuer,_func,_param);
+    return CPS<mutex_call_1<Class,Return,Param>>(func,_func,_param);
 }
 /**
  * @brief CPS_call_void : template helper function to create call structures for thread-safe calls into objects

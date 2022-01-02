@@ -1,18 +1,19 @@
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
 #include <iostream>
 #include <utility>
 
-#include "../main_tao.hpp"
-#include "../application.h"
-#include "../signalhandler.h"
-#include "../thread.h"
-#include "../thread_worker.h"
-#include "../thread_accessor.h"
-#include "../terminator.h"
+#include "drumlin/main_tao.h"
+#include "drumlin/application.h"
+#include "drumlin/signalhandler.h"
+#include "drumlin/thread.h"
+#include "drumlin/thread_worker.h"
+#include "drumlin/thread_accessor.h"
 #define TAOJSON
-#include "../tao_forward.h"
-#include "../../gremlin/compat.h"
+#include "drumlin/tao_forward.h"
+#include "../gremlin/compat.h"
+#include "behaviour.h"
+#include "terminator.h"
 
 namespace drumlin {
 
@@ -30,20 +31,8 @@ public:
     {
         BPLATE;
     }
-    virtual void writeToStream(std::ostream &stream)const {
-        stream << "ApplicationWorker" << std::endl;
-    }
-    virtual void writeToObject(json::value *obj)const {
-        obj->get_object().insert({std::string("ApplicationWorker"),std::string("writeToObject")});
-    }
-    virtual void getStatus(json::value *obj)const {
-        obj->get_object().insert({std::string("ApplicationWorker"),std::string("getStatus")});
-    }
     virtual void shutdown() {
         PLATE;
-    }
-    virtual void report(json::value *obj/*,ReportType type*/)const {
-        obj->get_object().insert({std::string("ApplicationWorker"),std::string("report")});
     }
     virtual void work(Object *,std::shared_ptr<Event> pevent) {
         if (pevent->getName() == "run-tests") {
@@ -62,12 +51,6 @@ public:
         } else if(pevent->getName() == "work") {
             EVENTLOG1(pevent, "working...");
         }
-        // {
-        //     ThreadAccessor()
-        //     .named("terminal")
-        //     .getNamed()
-        //     (SendEvent(event::make_event(DrumlinEventThreadWork, "next-char")));
-        // }
     }
     virtual bool event(std::shared_ptr<Event> pevent)
     {
@@ -140,14 +123,21 @@ TEST_F(ApplicationTest, ThreadDoesWork) {
 } // namespace drumlin
 
 int main(int argc, char **argv) {
-    Application a;
-    ::testing::InitGoogleTest(&argc, argv);
-    drumlin::iapp = dynamic_cast<ApplicationBase*>(&a);
-    a.addThread(new Thread("test-worker", new ApplicationWorker(argc, argv)), true);
-    a.addThread(new Thread("terminal", new Terminator()), true);
-    // json::value status(json::empty_object);
-    // a.getStatus(&status);
-    // json::to_stream(std::cout, status);
-    a.exec();
-    Debug() << "returning from main";
+    std::string str;
+    for(int i=1; i < argc; i++) {
+        str += std::string(argv[i]);
+    }
+    std::cout << "main.str: " << str << std::endl;
+    std::cout << grammar::parse_as_string<std::string, grammar::sourceRange >(str);
+    return 0;
+    // Application a;
+    // ::testing::InitGoogleTest(&argc, argv);
+    // drumlin::iapp = dynamic_cast<ApplicationBase*>(&a);
+    // a.addThread(new Thread("test-worker", new ApplicationWorker(argc, argv)), true);
+    // a.addThread(new Thread("terminal", new Terminator()), true);
+    // // json::value status(json::empty_object);
+    // // a.getStatus(&status);
+    // // json::to_stream(std::cout, status);
+    // a.exec();
+    // Debug() << "returning from main";
 }

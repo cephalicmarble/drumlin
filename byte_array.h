@@ -72,7 +72,7 @@ enum BufferType {
 /**
  * @brief The Buffer struct
  */
-struct Buffer {
+struct ByteBuffer {
     BufferType type;
     typedef void *ptr_type;
     struct free_buffer_t {
@@ -86,13 +86,13 @@ struct Buffer {
         ~buffers_t(){}
     }buffers;
 public:
-    Buffer(ptr_type _data,gint64 _len);
-    Buffer(byte_array const& bytes, bool freeAfterUse = false);
-    Buffer(string const& );
-    Buffer(const char *cstr);
-    Buffer(const IBuffer *buffer);
+    ByteBuffer(ptr_type _data,gint64 _len);
+    ByteBuffer(byte_array const& bytes, bool freeAfterUse = false);
+    ByteBuffer(string const& );
+    ByteBuffer(const char *cstr);
+    ByteBuffer(const IBuffer *buffer);
     operator byte_array();
-    ~Buffer();
+    ~ByteBuffer();
     template <class T>
     const T*data()
     {
@@ -110,7 +110,7 @@ public:
 /**
  * @brief buffers_type : the type of the socket's internal buffer vector
  */
-typedef std::list<std::unique_ptr<Buffer>> buffers_type;
+typedef std::list<std::unique_ptr<ByteBuffer>> buffers_type;
 
 extern logger& operator<< (logger& strm, const drumlin::byte_array &bytes);
 extern istream& operator>> (istream& strm, drumlin::byte_array &bytes);

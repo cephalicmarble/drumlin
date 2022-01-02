@@ -12,7 +12,6 @@ using namespace std;
 #include "signalhandler.h"
 #include "thread.h"
 #include "thread_worker.h"
-#include "terminator.h"
 #include "metatypes.h"
 
 namespace drumlin {

@@ -142,7 +142,7 @@ void byte_array::append(const void *m_next,size_t length)
      * @param _data void*
      * @param _len qint64
      */
-Buffer::Buffer(void*_data,gint64 _len):type(FreeBuffer)
+ByteBuffer::ByteBuffer(void*_data,gint64 _len):type(FreeBuffer)
 {
     APLATE;
     buffers.free_buffer.len = _len;
@@ -154,7 +154,7 @@ Buffer::Buffer(void*_data,gint64 _len):type(FreeBuffer)
      * @brief Buffer::Buffer : copy from byte_array
      * @param bytes byte_array
      */
-Buffer::Buffer(byte_array const& bytes, bool freeAfterUse):type(freeAfterUse ? FreeBuffer : TempBuffer)
+ByteBuffer::ByteBuffer(byte_array const& bytes, bool freeAfterUse):type(freeAfterUse ? FreeBuffer : TempBuffer)
 {
     APLATE;
     buffers.free_buffer.len = bytes.length();
@@ -170,7 +170,7 @@ Buffer::Buffer(byte_array const& bytes, bool freeAfterUse):type(freeAfterUse ? F
      * @brief Buffer::Buffer : copy from tring
      * @param  tring
      */
-Buffer::Buffer(string const& _str):type(FreeBuffer)
+ByteBuffer::ByteBuffer(string const& _str):type(FreeBuffer)
 {
     APLATE;
     const char *str(_str.c_str());
@@ -182,7 +182,7 @@ Buffer::Buffer(string const& _str):type(FreeBuffer)
      * @brief Buffer::Buffer : copy from cstr
      * @param cstr const char*
      */
-Buffer::Buffer(const char *cstr):type(FreeBuffer)
+ByteBuffer::ByteBuffer(const char *cstr):type(FreeBuffer)
 {
     APLATE;
     buffers.free_buffer.len = strlen(cstr);
@@ -193,7 +193,7 @@ Buffer::Buffer(const char *cstr):type(FreeBuffer)
      * @brief Buffer::Buffer : reference a buffer
      * @param buffer Buffers::Buffer*
      */
-Buffer::Buffer(const IBuffer *buffer):type(CacheBuffer)
+ByteBuffer::ByteBuffer(const IBuffer *buffer):type(CacheBuffer)
 {
     APLATE;
     buffers._buffer = buffer;
@@ -202,7 +202,7 @@ Buffer::Buffer(const IBuffer *buffer):type(CacheBuffer)
 /**
      * @brief Buffer::~Buffer : free any copied data
      */
-Buffer::~Buffer()
+ByteBuffer::~ByteBuffer()
 {
     BPLATE;
     if(type == FreeBuffer){
@@ -213,7 +213,7 @@ Buffer::~Buffer()
      * @brief Buffer::length
      * @return qint64
      */
-gint64 Buffer::length()
+gint64 ByteBuffer::length()
 {
     switch(type){
     case TempBuffer:
@@ -227,7 +227,7 @@ gint64 Buffer::length()
 /**
      * @brief Buffer::operator byte_array
      */
-Buffer::operator byte_array()
+ByteBuffer::operator byte_array()
 {
     switch(type){
     case TempBuffer:
