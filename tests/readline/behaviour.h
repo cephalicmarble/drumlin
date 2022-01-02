@@ -4,10 +4,10 @@
 #include <iterator>
 #include <iostream>
 #include <string_view>
-#include "drumlin/drumlin.h"
-#include "drumlin/exception.h"
-#include "drumlin/string_list.h"
-#include "tao/pegtl.hpp"
+#include "../drumlin/drumlin.h"
+#include "../drumlin/exception.h"
+#include "../drumlin/string_list.h"
+#include "../tao/pegtl.hpp"
 
 namespace grammar {
 
