@@ -32,7 +32,14 @@ typedef map<string,json::value*> json_map_type;
 class JsonConfig :
     public Object
 {
+    static json_map_type s_jsons;
+    JsonConfig();
+    json::value *fromJson(string const& _json);
+    json::value *fromFile(string const& path);
+    json::value *json = nullptr;
+    bool temporaryFlag;
 public:
+    JsonConfig(string const& path);
     JsonConfig(const JsonConfig &rhs);
     virtual ~JsonConfig();
 
@@ -53,14 +60,7 @@ public:
     friend logger &operator<<(logger &stream,const JsonConfig &rel);
     friend void reload();
     friend JsonConfig load(string path);
-    static json_map_type s_jsons;
-private:
-    JsonConfig();
-    JsonConfig(string const& path);
-    json::value *fromJson(string const& _json);
-    json::value *fromFile(string const& path);
-    json::value *json = nullptr;
-    bool temporaryFlag;
+    friend class json_map_clearer;
 };
 
 #define JSON_OBJECT_PROP(parent,name) (*parent.find(name)).toObject()

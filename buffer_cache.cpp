@@ -95,7 +95,7 @@ guint32 BufferCache::clearAllocated(UseIdentFilter use)
         });
     for(auto it : pairs)
     {
-        m_buffers.erase(std::remove(m_buffers.begin(), m_buffers.end(), it));
+        m_buffers.erase(std::remove(m_buffers.begin(), m_buffers.end(), it), m_buffers.end());
     }
     return n;
 }
