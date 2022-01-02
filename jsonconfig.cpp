@@ -227,14 +227,14 @@ size_t length(json::value *value)
  */
 logger &operator<<(logger &stream,const JsonConfig &rel)
 {
-    json::to_stream(stream,*rel.json);
+    json::to_stream(stream.getStream(),*rel.json);
     return stream;
 }
 
 json_map_clearer::~json_map_clearer()
 {
     BPLATE;
-    for(json_map_type::value_type & pair : JsonConfig::s_jsons){
+    for(auto & pair : JsonConfig::s_jsons){
         delete pair.second;
     }
 }

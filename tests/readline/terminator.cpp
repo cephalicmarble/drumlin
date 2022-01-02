@@ -4,9 +4,9 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
-#include "drumlin/drumlin.h"
-#include "drumlin/thread_worker.h"
-#include "drumlin/thread_accessor.h"
+#include "../drumlin/drumlin.h"
+#include "../drumlin/thread_worker.h"
+#include "../drumlin/thread_accessor.h"
 
 #include "behaviour.h"
 

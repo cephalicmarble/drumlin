@@ -3,14 +3,14 @@
 #include <iostream>
 #include <utility>
 
-#include "drumlin/main_tao.h"
-#include "drumlin/application.h"
-#include "drumlin/signalhandler.h"
-#include "drumlin/thread.h"
-#include "drumlin/thread_worker.h"
-#include "drumlin/thread_accessor.h"
+#include "../drumlin/main_tao.h"
+#include "../drumlin/application.h"
+#include "../drumlin/signalhandler.h"
+#include "../drumlin/thread.h"
+#include "../drumlin/thread_worker.h"
+#include "../drumlin/thread_accessor.h"
 #define TAOJSON
-#include "drumlin/tao_forward.h"
+#include "../drumlin/tao_forward.h"
 #include "../gremlin/compat.h"
 #include "behaviour.h"
 #include "terminator.h"

@@ -3,8 +3,8 @@
 
 #include <boost/thread.hpp>
 using namespace boost;
-#include "../../event.h"
-#include "../../thread_worker.h"
+#include "../drumlin/event.h"
+#include "../drumlin/thread_worker.h"
 
 namespace drumlin {
 

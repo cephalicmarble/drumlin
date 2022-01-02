@@ -4,10 +4,10 @@
 #include <string>
 #include <memory>
 #include <string_view>
-#include "../../drumlin.h"
-#include "../../exception.h"
-#include "../../tao/pegtl.hpp"
-#include "../../tao/pegtl/parse.hpp"
+#include "../drumlin/drumlin.h"
+#include "../drumlin/exception.h"
+#include "../tao/pegtl.hpp"
+#include "../tao/pegtl/parse.hpp"
 
 namespace grammar {
 
