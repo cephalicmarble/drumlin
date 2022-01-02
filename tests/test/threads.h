@@ -112,12 +112,24 @@ protected:
 // Tests that the Foo::Bar() method does Abc.
 TEST_F(ApplicationTest, ThreadDoesWork) {
     Thread *testWorker = new Thread("test-worker", new TestWorker());
-    std::promise<std::string> barrier;
-    testWorker->queuePromise("promise-name", barrier);
+    Thread *terminator = new Thread("terminal", new Terminator());
+    std::string workToken("tell-test-worker:00000000-0000-0000-000001:1");
+    std::promise<typeof workToken> barrier;
+    iapp->queuePromise("promise-name", std::move(barrier));
+    // test shell interface thread 'terminator' requires 'testWorker' to do work
+    // uses 2-ary function as there is no data to pass in to the WorkObject
+    terminator->setWork({std::string(workToken), std::string("promise-name")});
+    // sends event "workHere" workToken to testWorker
+    // which looks inside and resolves the promise by name
     a.addThread(testWorker, true);
-    a.addThread(new Thread("terminal", new Terminator()), true);
+    a.addThread(terminator, true);
     barrier.get_future().wait();
-    ASSERT_EQ(barrier.get_future().get(), "success");
+    // testWorker
+    ASSERT_EQ(barrier.get_future().get(), workToken);
+    ASSERT_EQ(testWorker->doneWork(workToken), true);
+    ASSERT_EQ(testWorker->doneWork(workToken + "blargle", false);
+    ASSERT_EQ(terminator->doneWork(workToken), true);
+    ASSERT_EQ(terminator->doneWork(workToken + "blargle", false);
 }
 
 #endif // _THREADS_H_
