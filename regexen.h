@@ -3,6 +3,7 @@
 
 #include <string>
 #include <functional>
+#include <memory>
 using namespace std;
 #include <boost/algorithm/algorithm.hpp>
 #include <boost/algorithm/string.hpp>
@@ -15,6 +16,8 @@ namespace drumlin {
 
 using namespace boost::regex_constants;
 
+class CRegex;
+class SRegex;
 template <class Regex> struct iterate_impl;
 
 template <class Match,class Iterator,class T>
@@ -28,42 +31,60 @@ public:
     typedef typename iterator_type::value_type::reference sub_match_type;
     typedef boost::regex_constants::match_flag_type match_flag_type;
     typedef boost::regex_constants::syntax_option_type syntax_option_type;
-
+    typedef iterate_impl<drumlin_regex<match_type,iterator_type,T> > impl_type;
+protected:
     drumlin_regex(string rx,syntax_option_type option)
-        : m_rx(rx,option),cap()
+        : m_rx(rx,option),m_cap()
     {
         APLATE;
     }
     drumlin_regex(drumlin_regex const& rhs)
     {
+        APLATE;
         m_rx = rhs.m_rx;
-        cap = rhs.cap;
+        m_cap = rhs.m_cap;
     }
     virtual ~drumlin_regex()
     {
         BPLATE;
     }
+public:
+    iterator_type make_regex_iterator(std::string &haystack,match_flag_type flags)
+    {
+        return iterator_type(haystack.begin(),haystack.end(),m_rx,flags);
+    }
     bool match(T haystack,match_flag_type flags = boost::regex_constants::match_default)
     {
-        return boost::regex_match(haystack,cap,m_rx,flags);
+        if(boost::regex_match(haystack,m_cap,m_rx,flags)) {
+            m_impl.reset(new impl_type(haystack, *this, flags));
+            m_impl->operator()(getCap());
+            return true;
+        }
+        return false;
     }
     bool search(T haystack,match_flag_type flags = boost::regex_constants::match_default)
     {
-        return boost::regex_search(haystack,cap,m_rx,flags);
+        if(boost::regex_search(haystack,m_cap,m_rx,flags)) {
+            m_impl.reset(new impl_type(haystack, *this, flags));
+            m_impl->operator()(getCap());
+            return true;
+        }
+        return false;
     }
     std::string replace(std::string haystack,size_t n,std::string subst)const
     {
-        drumlin::string_list list{
-            haystack.substr(0,cap.position(n)),
+        drumlin::string_list list({
+            haystack.substr(0,m_cap.position(n)),
             subst,
-            haystack.c_str() + cap.position(n) + cap.length(n),
-        };
+            haystack.c_str() + m_cap.position(n) + m_cap.length(n),
+        });
         return list.join();
     }
-    match_type const& getCap()const{ return cap; }
+    match_type const& getCap()const{ return m_cap; }
 protected:
     regex_type m_rx;
-    match_type cap;
+    match_type m_cap;
+    std::unique_ptr<impl_type> m_impl;
 };
 
 template <class Regex>
@@ -79,11 +100,11 @@ struct iterate_impl
     typedef std::vector<std::pair<replacement,std::string>> captures_type;
     typedef std::function<bool(iterate_impl<Regex> &,capture_type &)> func_type;
 
-    iterate_impl()
-    {
-        APLATE;
-    }
-    iterate_impl(string &haystack,Regex &rx,typename Regex::match_flag_type flags = boost::regex_constants::match_default)
+    // iterate_impl()
+    // {
+    //     APLATE;
+    // }
+    iterate_impl(string haystack,Regex &rx,typename Regex::match_flag_type flags = boost::regex_constants::match_default)
         : m_haystack(haystack),m_iter(rx.make_regex_iterator(m_haystack,flags))
     {
         APLATE;
@@ -91,39 +112,51 @@ struct iterate_impl
     ~iterate_impl(){
         BPLATE;
     }
-    int operator()(func_type func = [](iterate_impl<Regex> &,capture_type &cap){ return true; })
+    int operator()(match_type const& cap)
     {
-        int c = 0;
-        for(;m_iter != iterator_type();++m_iter) {
-            c++;
-            capture_type &cap(const_cast<capture_type&>(*m_iter));
-            if(!func(*this,cap))
-                break;
+        size_t c;
+        for(c=0;c<cap.size();c++)
+        {
+            m_captures.push_back({
+                replacement{cap.position(c), cap.length(c)},
+                m_haystack.substr(cap.position(c), cap.length(c))
+            });
         }
         return c;
     }
-    void substitute(capture_type cap,size_t n,std::string subst)
+    auto &operator[](long unsigned idx)const
     {
-        m_captures.push_back(make_pair(replacement{cap.position(n),cap.length(n)},subst));
+        return m_captures[idx];
+    }
+    int length()const
+    {
+        return m_captures.size();
+    }
+    void substitute(size_t n,std::string subst)
+    {
+        m_captures[n].second = subst;
     }
     std::string replace()const
     {
         std::string::size_type pos(0);
-        drumlin::string_list list;
-        for(typename captures_type::size_type i=0; i < m_captures.size();i++) {
+        std::stringstream ss;
+        for(typename captures_type::size_type i=1; i < m_captures.size();i++) {
             typename captures_type::value_type const& replacement(m_captures[i]);
 
-            list << m_haystack.substr(pos,replacement.first.position - pos);
-            list << replacement.second;
-
-            pos = replacement.first.position + replacement.first.length;
+            ss << m_haystack.substr(pos,replacement.first.position - pos);
+            pos += replacement.first.position - pos;
+            ss << replacement.second;
+            pos += replacement.first.length;
         }
-        list << m_haystack.substr(pos);
-        return list.join();
+        if(pos < m_haystack.length()) {
+            ss << m_haystack.substr(pos);
+        }
+        return ss.str();
     }
     std::string m_haystack;
     iterator_type m_iter;
     captures_type m_captures;
+    captures_type m_replacements;
 };
 
 struct SRegex : public drumlin_regex<boost::smatch,boost::sregex_iterator,string>
@@ -131,16 +164,6 @@ struct SRegex : public drumlin_regex<boost::smatch,boost::sregex_iterator,string
     typedef drumlin_regex<boost::smatch,boost::sregex_iterator,string> Base;
     typedef iterate_impl<SRegex> iterate_type;
     typedef typename iterate_type::func_type func_type;
-    int iterate(string haystack,func_type func,match_flag_type flags = boost::regex_constants::match_default)
-    {
-        m_impl = iterate_type(haystack,*this,flags);
-        int ret = m_impl(func);
-        return ret;
-    }
-    iterator_type make_regex_iterator(std::string &haystack,match_flag_type flags)
-    {
-        return iterator_type(haystack.begin(),haystack.end(),m_rx,flags);
-    }
     SRegex clone()const{
         return *this;
     }
@@ -163,9 +186,7 @@ struct SRegex : public drumlin_regex<boost::smatch,boost::sregex_iterator,string
     {
         BPLATE;
     }
-    iterate_impl<SRegex> &getImpl(){ return m_impl; }
-private:
-    iterate_impl<SRegex> m_impl;
+    impl_type &getImpl(){ return *m_impl; }
 };
 
 struct CRegex : public drumlin_regex<boost::cmatch,boost::cregex_iterator,const char*>
@@ -173,24 +194,6 @@ struct CRegex : public drumlin_regex<boost::cmatch,boost::cregex_iterator,const 
     typedef drumlin_regex<boost::cmatch,boost::cregex_iterator,const char*> Base;
     typedef iterate_impl<CRegex> iterate_type;
     typedef typename iterate_type::func_type func_type;
-    int iterate(string haystack,func_type func,match_flag_type flags = boost::regex_constants::match_default)
-    {
-        m_impl = iterate_type(haystack,*this,flags);
-        int ret = m_impl(func);
-        return ret;
-    }
-    iterator_type make_regex_iterator(std::string &haystack,match_flag_type flags)
-    {
-        return iterator_type(&*haystack.begin(),&*haystack.end(),m_rx,flags);
-    }
-    bool match(std::string &haystack,match_flag_type flags = boost::regex_constants::match_default)
-    {
-        return boost::regex_match(haystack.c_str(),cap,m_rx,flags);
-    }
-    bool search(std::string &haystack,match_flag_type flags = boost::regex_constants::match_default)
-    {
-        return boost::regex_search(haystack.c_str(),cap,m_rx,flags);
-    }
     CRegex clone()const{
         return *this;
     }
@@ -212,9 +215,7 @@ struct CRegex : public drumlin_regex<boost::cmatch,boost::cregex_iterator,const 
     {
         BPLATE;
     }
-    iterate_impl<CRegex> &getImpl(){ return m_impl; }
-private:
-    iterate_impl<CRegex> m_impl;
+    impl_type &getImpl(){ return *m_impl; }
 };
 
 typedef boost::iterator_range<typename std::string::iterator> iterator_range_type;

@@ -32,7 +32,7 @@ guint32 HeapBuffer::length()const
  */
 HeapBuffer::operator byte_array()const
 {
-    return byte_array::fromRawData(m_data,m_len);
+    return byte_array::fromData(m_data,m_len);
 }
 
 /**

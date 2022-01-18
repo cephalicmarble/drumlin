@@ -2,12 +2,18 @@
 #define DRUMLIN_H
 
 #include <iostream>
+#include <fstream>
 #include <cstdio>
+#include <memory>
 using namespace std;
 #include <boost/any.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/for_each.hpp>
+#include <boost/filesystem/path.hpp>
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
 #include <chrono>
 using namespace boost;
 #include "logger.h"
@@ -26,6 +32,8 @@ typedef std::chrono::microseconds time_duration_t;
 #define FRIENDTHREADSLOCK std::lock_guard<std::recursive_mutex> l(const_cast<std::recursive_mutex&>(iapp->m_critical_section));
 // for internal Application use
 #define THREADSLOCK std::lock_guard<std::recursive_mutex> l(const_cast<std::recursive_mutex&>(m_critical_section));
+
+#define PROMISELOCK std::lock_guard<std::recursive_mutex> l(const_cast<std::recursive_mutex&>(m_critical_section));
 
 // for internal brief use
 #define INTERNAL std::lock_guard<std::recursive_mutex> internal(const_cast<std::recursive_mutex&>(m_mutex));
@@ -88,6 +96,34 @@ struct stream_operator_impl {
 private:
     ostream &strm;
     const boost::any& p;
+};
+
+class temp_file;
+typedef std::shared_ptr<temp_file> temp_file_ptr;
+class temp_file
+{
+    boost::filesystem::path m_path;
+    int m_fd;
+public:
+    temp_file() {
+        std::string name = "tempXXXXXX";
+        m_fd = mkstemp(const_cast<char*>(name.c_str()));
+        m_path = boost::filesystem::path(name);
+    }
+    temp_file(const boost::filesystem::path &root): m_path(root) {
+        m_fd = open(get_path().c_str(), O_CREAT | O_TMPFILE | O_RDWR);
+    }
+    ~temp_file() {
+        close(m_fd);
+        remove(m_path.c_str());
+    }
+    const boost::filesystem::path &get_path() const { return m_path; }
+    std::ofstream get_ofstream() const {
+        return std::ofstream(get_path().c_str());
+    }
+    std::ifstream get_ifstream() const {
+        return std::ifstream(get_path().c_str());
+    }
 };
 
 } // namespace drumlin

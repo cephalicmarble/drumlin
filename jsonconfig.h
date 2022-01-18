@@ -6,61 +6,59 @@
 #include <list>
 #include <iostream>
 #include <fstream>
+#include <memory>
 using namespace std;
 #include "tao_forward.h"
 using namespace tao;
 #include "object.h"
-#include "socket.h"
-using namespace drumlin;
+#include "logger.h"
 
-//#include <QBluetoothDeviceInfo>
-//class BluetoothLEDevice;
-//class LowEnergySource;
+namespace drumlin {
 
 namespace Config {
 
 class JsonConfig;
 
-extern void reload();
-extern JsonConfig load(string path);
+typedef map<string,JsonConfig*> json_map_type;
 
-typedef map<string,json::value*> json_map_type;
+class json_map_clearer
+{
+    json_map_type s_jsons;
+public:
+    json_map_type &getJsons();
+    ~json_map_clearer();
+};
+
+extern json_map_clearer klaar;
 
 /**
  * @brief The JsonConfig class
  */
-class JsonConfig :
-    public Object
+class JsonConfig
 {
-    static json_map_type s_jsons;
+    std::unique_ptr<json::value> m_json;
     JsonConfig();
-    json::value *fromJson(string const& _json);
-    json::value *fromFile(string const& path);
-    json::value *json = nullptr;
-    bool temporaryFlag;
-public:
-    JsonConfig(string const& path);
     JsonConfig(const JsonConfig &rhs);
+    JsonConfig(json::value *);
+public:
+    json::value *object();
+    static json_map_type &getJsons();
+    static void reload(std::set<string>);
+    static JsonConfig* fromJson(string const& _json);
+    static JsonConfig* fromFile(string const& path);
     virtual ~JsonConfig();
-
-//    void writeDeviceSource(const QBluetoothDeviceInfo &info,LowEnergySource *_source);
-    json::value *getDevice(const string &mac);
 
     void setDefaultValue(json::value *parent,const json::object_initializer &&);
     void setKey(const json::object_initializer && l);
     json::value *getKey(string const& key);
     json::value operator[](string const& key)const;
     json::value &at(string const& key)const;
-    json::value *object();
-
-//    json::value from(BluetoothLEDevice*);
+    json::value getJson()const;
     void save(ostream &device);
     void save(string const& path);
 public:
     friend logger &operator<<(logger &stream,const JsonConfig &rel);
-    friend void reload();
-    friend JsonConfig load(string path);
-    friend class json_map_clearer;
+    friend json_map_clearer::~json_map_clearer();
 };
 
 #define JSON_OBJECT_PROP(parent,name) (*parent.find(name)).toObject()
@@ -77,14 +75,8 @@ size_t length(json::value *value);
 
 extern logger &operator<<(logger &stream,const JsonConfig &rel);
 
-class json_map_clearer
-{
-public:
-    ~json_map_clearer();
-};
+} // namespace Config
 
-extern json_map_clearer klaar;
-
-}
+} // namespace drumlin
 
 #endif // JSONCONFIG_H
