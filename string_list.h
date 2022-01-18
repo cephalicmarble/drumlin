@@ -22,12 +22,6 @@ class string_list : public std::list<string>
 {
 public:
     typedef std::list<string> base;
-    friend string_list& operator<< (string_list &vecS,string const& str);
-    friend string_list& operator<< (string_list &vecS,string & str);
-    friend string_list& operator<< (string_list &vecS,const char* str);
-    friend string_list& operator<< (string_list &vecS,char *str);
-    friend string_list& operator<< (string_list &vecS,std::pair<std::string,boost::any const&> const& pair);
-    friend string_list& operator<< (string_list &vecS,std::pair<std::string,std::string> const& pair);
     string join(string str);
     string join(const char*pc = 0);
     static string_list fromString(string const& toSplit,string delim,bool all = false,algorithm::token_compress_mode_type = algorithm::token_compress_on);
@@ -35,6 +29,7 @@ public:
     static string_list fromString(string const& toSplit,const char delim,bool all = false,algorithm::token_compress_mode_type = algorithm::token_compress_on);
     string_list &operator=(string_list const& rhs);
     string_list():base(){}
+    string_list(std::initializer_list<std::string>);
     string_list(string_list const&);
     string_list(iterator_traits<std::pair<string_list::const_iterator, string_list::const_iterator>> const&);
     template<class transform_iter_type>
@@ -46,6 +41,15 @@ public:
     std::string toString()const;
     string_list namesOnly(bool strict = true)const;
     bool operator==(string_list &rhs);
+    std::string operator[](unsigned idx);
+    std::string join(char c);
+    std::string join(std::string const& chars);
+    friend string_list& operator<< (string_list &vecS,string const& str);
+    friend string_list& operator<< (string_list &vecS,string & str);
+    friend string_list& operator<< (string_list &vecS,const char* str);
+    friend string_list& operator<< (string_list &vecS,char *str);
+    friend string_list& operator<< (string_list &vecS,std::pair<std::string,boost::any const&> const& pair);
+    friend string_list& operator<< (string_list &vecS,std::pair<std::string,std::string> const& pair);
     friend ostream& operator <<(ostream &stream, string_list const& list);
 };
 

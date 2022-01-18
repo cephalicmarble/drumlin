@@ -2,6 +2,7 @@
 
 #include <string>
 #include <sstream>
+#include <memory>
 using namespace std;
 #include "drumlin.h"
 
@@ -27,19 +28,20 @@ byte_array::byte_array(byte_array &&rhs)
     operator=(rhs);
 }
 
-byte_array::byte_array(const void *mem,size_t length,bool takeOwnership)
+byte_array::byte_array(const void *mem,size_t length)
 {
     APLATE;
     m_data = const_cast<void*>(mem);
     m_length = length;
-    m_destroy = takeOwnership;
+    m_destroy = true;
 }
 
 byte_array::byte_array(const std::string &owner)
 {
     APLATE;
     m_data = const_cast<void*>(static_cast<const void*>(owner.c_str()));
-    m_length = owner.length();
+    m_length = owner.length() + 1;
+    m_destroy = false;
 }
 
 byte_array::~byte_array()
@@ -58,42 +60,66 @@ void byte_array::clear()
     m_length = 0;
 }
 
-byte_array &byte_array::operator=(const byte_array &rhs)
+bool byte_array::empty()
+{
+    return m_data == nullptr && m_length == 0;
+}
+
+byte_array byte_array::operator=(const byte_array &rhs)
+{
+    clear();
+    append(rhs.m_data,rhs.m_length);
+    return *this;
+}
+
+byte_array byte_array::operator=(const byte_array &&rhs)
 {
     clear();
     m_destroy = rhs.m_destroy;
-    const_cast<byte_array&>(rhs).m_destroy = false;
     m_data = rhs.m_data;
     m_length = rhs.m_length;
     return *this;
 }
 
-byte_array &byte_array::operator=(const char *pc)
+byte_array byte_array::operator=(const char *pc)
 {
     clear();
     m_data = const_cast<void*>(static_cast<const void*>(pc));
-    m_length = strlen(pc);
+    m_length = strlen(pc) + 1;
     return *this;
 }
 
-byte_array byte_array::fromRawData(char *pc,size_t start,size_t length)
+byte_array byte_array::operator+=(const byte_array &pc)
+{
+    append(pc.cdata(), pc.length());
+    return *this;
+}
+
+byte_array byte_array::operator+(const byte_array &pc)const
+{
+    byte_array tmp(*this);
+    tmp.append(pc.cdata(), pc.length());
+    return tmp;
+}
+
+byte_array byte_array::fromData(const char *pc,size_t start,size_t length)
 {
     byte_array bytes;
-    bytes.append(pc+start,length!=string::npos?length:strlen(pc+start));
+    bytes.append(pc+start,length + 1);
     return bytes;
 }
 
-byte_array byte_array::fromRawData(void *mem,size_t length)
+byte_array byte_array::fromData(void *mem,size_t length)
 {
     byte_array bytes;
     bytes.append(mem,length);
     return bytes;
 }
 
-byte_array byte_array::fromRawData(std::string str)
+byte_array byte_array::fromData(std::string str)
 {
     byte_array bytes;
-    bytes.append(str.c_str(),str.length());
+    bytes.append(str.c_str(),str.length() + 1);
     return bytes;
 }
 
@@ -110,134 +136,54 @@ byte_array byte_array::readAll(istream &strm)
     return bytes;
 }
 
-void byte_array::append(std::string const& str)
+void byte_array::truncate(size_type len)
 {
-    append(str.c_str(),str.length());
+    if(m_data && m_length >= len){
+        if(!m_destroy) {
+            append(m_data, len);
+        }
+        ((char*)m_data)[(m_length=len)] = 0;
+    }
 }
 
-void byte_array::append(std::string & str)
+byte_array::operator std::string()const
 {
-    append(str.c_str(),str.length());
+    return m_length?std::string((char*)m_data,0,m_length):std::string();
 }
 
-void byte_array::append(const void *m_next,size_t length)
+byte_array::operator string_list()const
+{
+    string_list list;
+    char *pc((char*)m_data);
+    while(pc < ((char*)m_data) + m_length) {
+        std::string s(pc);
+        list << s;
+        pc += s.length() + 1;
+    }
+    return list;
+}
+
+byte_array& byte_array::append(std::string const& str)
+{
+    append(str.c_str(),str.length() + 1);
+    return *this;
+}
+
+byte_array& byte_array::append(const void *m_next,size_t length)
 {
     if(!length)
-        return;
+        return *this;
     char *pdest;
-    if(m_data){
+    if(m_destroy && m_data){
         pdest = (char*)realloc(m_data,m_length+length);
-    }else{
+    }else if(!m_data){
         pdest = (char*)malloc(m_length+length);
     }
     memmove(pdest+m_length,m_next,length);
-    if(m_data != nullptr)free(m_data);
     m_data = pdest;
     m_length += length;
     m_destroy = true;
-}
-
-/**
-     * @brief Buffer::Buffer : copy from data
-     * @param _data void*
-     * @param _len qint64
-     */
-ByteBuffer::ByteBuffer(void*_data,gint64 _len):type(FreeBuffer)
-{
-    APLATE;
-    buffers.free_buffer.len = _len;
-    buffers.free_buffer.data = (char*)malloc(buffers.free_buffer.len);
-    memcpy(buffers.free_buffer.data,_data,buffers.free_buffer.len);
-}
-
-/**
-     * @brief Buffer::Buffer : copy from byte_array
-     * @param bytes byte_array
-     */
-ByteBuffer::ByteBuffer(byte_array const& bytes, bool freeAfterUse):type(freeAfterUse ? FreeBuffer : TempBuffer)
-{
-    APLATE;
-    buffers.free_buffer.len = bytes.length();
-    if (freeAfterUse) {
-        buffers.free_buffer.data = (char*)malloc(buffers.free_buffer.len);
-        memcpy(buffers.free_buffer.data, bytes.data(), buffers.free_buffer.len);
-    } else {
-        buffers.free_buffer.data = (char*)bytes.data();
-    }
-}
-
-/**
-     * @brief Buffer::Buffer : copy from tring
-     * @param  tring
-     */
-ByteBuffer::ByteBuffer(string const& _str):type(FreeBuffer)
-{
-    APLATE;
-    const char *str(_str.c_str());
-    buffers.free_buffer.len = strlen(str);
-    buffers.free_buffer.data = strdup(str);
-}
-
-/**
-     * @brief Buffer::Buffer : copy from cstr
-     * @param cstr const char*
-     */
-ByteBuffer::ByteBuffer(const char *cstr):type(FreeBuffer)
-{
-    APLATE;
-    buffers.free_buffer.len = strlen(cstr);
-    buffers.free_buffer.data = strdup(cstr);
-}
-
-/**
-     * @brief Buffer::Buffer : reference a buffer
-     * @param buffer Buffers::Buffer*
-     */
-ByteBuffer::ByteBuffer(const IBuffer *buffer):type(CacheBuffer)
-{
-    APLATE;
-    buffers._buffer = buffer;
-}
-
-/**
-     * @brief Buffer::~Buffer : free any copied data
-     */
-ByteBuffer::~ByteBuffer()
-{
-    BPLATE;
-    if(type == FreeBuffer){
-        free(buffers.free_buffer.data);
-    }
-}
-/**
-     * @brief Buffer::length
-     * @return qint64
-     */
-gint64 ByteBuffer::length()
-{
-    switch(type){
-    case TempBuffer:
-    case FreeBuffer:
-        return buffers.free_buffer.len;
-    case CacheBuffer:
-        return buffers._buffer->length();
-    }
-    return 0;
-}
-/**
-     * @brief Buffer::operator byte_array
-     */
-ByteBuffer::operator byte_array()
-{
-    switch(type){
-    case TempBuffer:
-    case FreeBuffer:
-        return byte_array::fromRawData(const_cast<void*>(data<void>()),length());
-    case CacheBuffer:
-        return byte_array::fromRawData(const_cast<void*>(buffers._buffer->data()),buffers._buffer->length());
-    default:
-        return byte_array();
-    }
+    return *this;
 }
 
 ostream& operator<< (ostream &strm, const drumlin::byte_array &bytes)

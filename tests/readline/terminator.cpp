@@ -93,7 +93,7 @@ void Terminator::run()
             break;
         default:
             boost::this_thread::yield();
-            boost::this_thread::sleep(boost::posix_time::milliseconds(400));
+            boost::this_thread::sleep(boost::posix_time::milliseconds(1));
     }
 }
 

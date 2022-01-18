@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <set>
 using namespace std;
 #include <boost/filesystem.hpp>
 #include <boost/uuid/uuid.hpp>
@@ -10,62 +11,49 @@ using namespace std;
 //#include "lowenergy.h"
 //#include "device.h"
 #include "byte_array.h"
-#include "socket.h"
-using namespace drumlin;
+#include "drumlin.h"
+
+namespace drumlin {
 
 namespace Config {
 
 json_map_clearer klaar;
 
-json_map_type JsonConfig::s_jsons;
-
-void reload()
+json_map_type &json_map_clearer::getJsons()
 {
-    for(json_map_type::value_type &config : JsonConfig::s_jsons){
+    return s_jsons;
+}
+
+json_map_clearer::~json_map_clearer()
+{
+    BPLATE;
+    for(json_map_type::value_type &config : s_jsons)
+    {
         delete config.second;
-        config.second = load(config.first).object();
     }
+    s_jsons.clear();
 }
 
-JsonConfig load(string path)
+JsonConfig::JsonConfig()
 {
-    return JsonConfig(path);
-}
-
-JsonConfig::JsonConfig() : Object(0),temporaryFlag(true)
-{
-    CPLATE;
-    json = fromJson("{}");
-}
-
-/**
- * @brief JsonConfig::JsonConfig
- */
-JsonConfig::JsonConfig(std::string const& path) : Object(0),temporaryFlag(false)
-{
-    CPLATE;
-    json = fromFile(path);
+    APLATE;
+    m_json.reset(new json::value(json::from_string(std::string("{}"))));
 }
 
 /**
  * @brief JsonConfig::JsonConfig : copy constructor
  * @param rhs JsonConfig&
  */
-JsonConfig::JsonConfig(const JsonConfig &rhs) :
-    Object(0),json(rhs.json),temporaryFlag(rhs.temporaryFlag)
+JsonConfig::JsonConfig(const JsonConfig &rhs)
 {
-    CPLATE;
+    APLATE;
+    m_json.reset(new json::value(*rhs.m_json.get()));
 }
 
-/**
- * @brief JsonConfig::~JsonConfig
- */
-JsonConfig::~JsonConfig()
+JsonConfig::JsonConfig(json::value *_json)
 {
-    DPLATE;
-    if(temporaryFlag){
-        delete json;
-    }
+    APLATE;
+    m_json.reset(_json);
 }
 
 /**
@@ -74,7 +62,97 @@ JsonConfig::~JsonConfig()
  */
 json::value *JsonConfig::object()
 {
-    return json;
+    return m_json.get();
+}
+
+json_map_type &JsonConfig::getJsons()
+{
+    return klaar.getJsons();
+}
+
+void JsonConfig::reload(std::set<string> list)
+{
+    std::set<string> visible;
+    for(json_map_type::value_type &config : getJsons())
+    {
+        if(config.second != nullptr)
+            delete config.second;
+        config.second = nullptr;
+        if(boost::filesystem::exists(boost::filesystem::path(config.first))) {
+            visible.insert(config.first);
+        }
+    }
+    getJsons().clear();
+    for(auto & li : visible)
+    {
+        if(list.find(li) == list.end())
+        {
+            getJsons().insert(make_pair(li, fromFile(li)));
+        }
+    }
+    for(auto & li : list)
+    {
+        getJsons().insert(make_pair(li, fromFile(li)));
+    }
+}
+
+JsonConfig *JsonConfig::fromJson(std::string const& _json)
+{
+    return new JsonConfig(new json::value(json::from_string(_json)));
+}
+
+/**
+ * @brief JsonConfig::load : load from file
+ * @param path tring
+ */
+JsonConfig *JsonConfig::fromFile(std::string const& path)
+{
+    json_map_type::iterator it(getJsons().find(path));
+    if(getJsons().end()!=it)
+    {
+        return it->second;
+    }
+    boost::filesystem::path p(path);
+    if(!boost::filesystem::exists(p))
+        return nullptr;
+    ifstream strm(path.c_str());
+    stringstream ss;
+    ss << strm.rdbuf();
+    JsonConfig *ret(new JsonConfig(new json::value(json::from_string(ss.str()))));
+    getJsons().insert({path,ret});
+    return ret;
+}
+
+/**
+ * @brief JsonConfig::~JsonConfig
+ */
+JsonConfig::~JsonConfig()
+{
+    BPLATE;
+}
+
+/**
+ * @brief JsonConfig::setDefaultValue : convenience function
+ * @param parent QJsonObject
+ * @param key tring
+ * @param _default QJsonValue
+ */
+void JsonConfig::setDefaultValue(json::value *parent, const json::object_initializer && l)
+{
+    for(auto _l : l){
+        if(!parent->find(_l.first))
+            parent->get_object().insert(_l);
+    }
+}
+
+/**
+ * @brief JsonConfig::setKey : set a key in the config
+ * @param key tring
+ * @param value QJsonValue
+ */
+void JsonConfig::setKey(const json::object_initializer && l)
+{
+    m_json->get_object().insert(std::move(l));
 }
 
 /**
@@ -84,7 +162,7 @@ json::value *JsonConfig::object()
  */
 json::value *JsonConfig::getKey(std::string const& key)
 {
-    return json->find(key);
+    return m_json->find(key);
 }
 
 /**
@@ -95,7 +173,7 @@ json::value *JsonConfig::getKey(std::string const& key)
 json::value JsonConfig::operator[](std::string const& key)const
 {
     json::pointer ptr(key.c_str());
-    return json->at(ptr);
+    return m_json->at(ptr);
 }
 
 /**
@@ -106,50 +184,12 @@ json::value JsonConfig::operator[](std::string const& key)const
 json::value &JsonConfig::at(std::string const& key)const
 {
     json::pointer ptr(key.c_str());
-    return json->at(ptr);
+    return m_json->at(ptr);
 }
 
-/**
- * @brief JsonConfig::setKey : set a key in the config
- * @param key tring
- * @param value QJsonValue
- */
-void JsonConfig::setKey(const json::object_initializer && l)
+json::value JsonConfig::getJson()const
 {
-    json->get_object().insert(std::move(l));
-}
-
-//json::value JsonConfig::from(BluetoothLEDevice *that)
-//{
-//    return at(std::string("/devices/")+that->getDeviceInfo().address().toString().toStdString());
-//}
-
-json::value *JsonConfig::fromJson(std::string const& _json)
-{
-    json = new json::value(json::from_string(_json));
-    return json;
-}
-
-/**
- * @brief JsonConfig::load : load from file
- * @param path tring
- */
-json::value *JsonConfig::fromFile(std::string const& path)
-{
-    json_map_type::iterator it(s_jsons.find(path));
-    if(s_jsons.end()!=it){
-        json = it->second;
-        return json;
-    }
-    boost::filesystem::path p(path);
-    if(!boost::filesystem::exists(p))
-        return nullptr;
-    ifstream strm(path.c_str());
-    stringstream ss;
-    ss << strm.rdbuf();
-    json = new json::value(json::from_string(ss.str()));
-    s_jsons.insert({path,json});
-    return json;
+    return *m_json.get();
 }
 
 /**
@@ -158,7 +198,7 @@ json::value *JsonConfig::fromFile(std::string const& path)
  */
 void JsonConfig::save(ostream &device)
 {
-    json::to_stream(device,*json,2);
+    json::to_stream(device,*m_json,2);
 }
 
 /**
@@ -176,20 +216,6 @@ void JsonConfig::save(std::string const& path)
         return;
     }
     save(strm);
-}
-
-/**
- * @brief JsonConfig::setDefaultValue : convenience function
- * @param parent QJsonObject
- * @param key tring
- * @param _default QJsonValue
- */
-void JsonConfig::setDefaultValue(json::value *parent, const json::object_initializer && l)
-{
-    for(auto _l : l){
-        if(!parent->find(_l.first))
-            parent->get_object().insert(_l);
-    }
 }
 
 std::string devices_config_file;
@@ -227,16 +253,10 @@ size_t length(json::value *value)
  */
 logger &operator<<(logger &stream,const JsonConfig &rel)
 {
-    json::to_stream(stream.getStream(),*rel.json);
+    json::to_stream(stream.getStream(),*rel.m_json);
     return stream;
 }
 
-json_map_clearer::~json_map_clearer()
-{
-    BPLATE;
-    for(auto & pair : JsonConfig::s_jsons){
-        delete pair.second;
-    }
-}
-
 } // namespace Config
+
+} // namespace drumlin

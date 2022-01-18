@@ -8,7 +8,7 @@ using namespace boost;
 
 namespace drumlin {
 
-extern ApplicationBase *iapp;
+extern Application *iapp;
 
 class Terminator
     : public ThreadWorker

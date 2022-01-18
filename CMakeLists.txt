@@ -7,7 +7,7 @@ find_package(PkgConfig REQUIRED)
 set(PKGCONFIG "/usr/bin/pkg-config")
 set (CMAKE_VERBOSE_MAKEFILE ON)
 
-add_compile_options(-W -Wall -Wextra -pedantic -Wno-literal-suffix -DBOOST_ASIO_ENABLE_HANDLER_TRACKING)
+add_compile_options(-W -g -Wall -Wextra -pedantic -Wno-literal-suffix -DBOOST_ASIO_ENABLE_HANDLER_TRACKING)
 cmake_minimum_required(VERSION 3.6)
 
 find_package(Boost REQUIRED COMPONENTS system chrono date_time filesystem log program_options regex)

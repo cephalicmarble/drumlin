@@ -1,47 +1,61 @@
+# days of yore
+
+Drumlin and Pleg were all that remained when I had separated concerns in a brief, all-encompassing edit prior to supervised deletion of the code I was NOT allowed to possess. The refactoring has hung around waiting for a serious attempt since 2017.
+
 # drumlin
-common cpp items
 
-These developed as a meta-protocol against multi-threaded QT; I have a plan to introduce a slot&signal mechanism for reading out metadata whilst several threads do something or other.
+I have a plan to introduce a slot&signal mechanism for reading out metadata whilst several threads do something or other.
 
-There is obviously more to the development than this, which I have deposited here mainly as
-a recruitment stooge, although I have plans to go further with the concept. (See cephalicmarble/pleg)
+## note (namespace drumlin::work)
 
-N.B. I was permitted to use any of the prototype that I developed with this so long
-as it did not expose any more pertinent information from the specification.
+The plan would be to allow event-bubbling from per-thread meta-trap configs
+during work definition and later stages of work lifecycles.
+NB: thread may see event prior to trap
 
-# Tests
+This is intended to allow push-notifications and to simplify debug from SPA during development of working units.
 
-## thread-rig
+Possible HTTP(S) communications...
+* GET status:|config:|report:|work:|descriptor:
+* HEAD status:|config:|report:|work:|descriptor:
+* POST workTo:  (appends or restarts 'thread' NB:ACL)
+* PATCH config: (does not restart,            NB:ACL)
+* DELETE config:|work:
+
+# Approach to testing
+
+Obvs I would like 100% test coverage, and the refactoring began with none.
+
+As units are moved from pleg (essentially a repository of pre-refactoring code), the code is incorporated in a feature branch until it builds, prior to development in test branches which should achieve the desired coverage.
+
+Currently this is underway with the first inclusion, which is the buffer allocator and work storage/access system, which I am developing with TDD.
+
+Once the work system has its grounding, I will write the unitary tests for drumlin. I freely admit that the work is just too interesting and the refactoring too young to approach in any other manner. There is a long way before the imagined stride mechanism is load-balancing against a stream of HTTP(S):POSTed work items, but there is always some place to begin.
+
+## pleg
 
 socket        - ThreadType::SocketTest (client and server)
-mutexcall     - ThreadType::MockTest
+
+## drumlin
+
+thread       
 thread_worker - ThreadType::WorkerMock
 terminator    - ThreadType::Terminator
-thread       
+application
+drumlin::work
 
 ### unitary
-
+mutexcall
 regex
 string_list
 byte_array
-
-## app-rig (dependencies on thread-rig)
-
-drumlin
-cursor
-application
-
-### unitary
-
 jsonconfig
 exception
+cursor
 
 #### Discussion
 
-At a first glance, I can develop app-rig and associated shell script (run-tests.sh)
-against the present thread code. Once those and the unitary app-rig code is tested,
-I will take a step back and work on auto_ptr in the string_list and byte_array.
-(This is code that lost its way a while back, and it is exposed now the development
-is being separated.) Then after regextest.cpp, I will be confident with the app-rig
-and may develop the mock threads. Overall, test development will be from the base
-of the list above, progressing in an upward direction.
+Since more complete assessment was done, I added much code from pleg into drumlin. Now attempting to use TDD for later aspects of development, I still want unit tests prior to use of the unit. String_list has turned up in a few places prior to that. drumlin/CMakeLists.txt allows unit tests to be developed in parallel, work is being done in 'drumlin/test.cpp' branch.
+
+The note above (under drumlin), is intended to apply to later stage development, covering data-handling and metadata-response. Work is being done in 'drumlin/threads' branch.
+
+Projected SPA development will take place in branches of pleg, to cover at least the units and verbs shown above.

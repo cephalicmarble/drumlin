@@ -1,6 +1,7 @@
 #ifndef CURSOR_H_
 #define CURSOR_H_
 
+#include <memory>
 #include "thread.h"
 #include "signalhandler.h"
 #include "tao_forward.h"
@@ -12,7 +13,7 @@ namespace Tracer {
 
 class Tracer;
 
-extern Tracer *tracer;
+extern std::shared_ptr<Tracer> tracer;
 
 extern void startTrace(string filename);
 extern void endTrace();

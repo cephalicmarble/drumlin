@@ -4,6 +4,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/any.hpp>
 #include "drumlin.h"
+#include "exception.h"
 
 namespace drumlin {
 
@@ -14,7 +15,7 @@ string string_list::join(string str)
 
 string string_list::join(const char*pc)
 {
-    return join(string(pc ? pc : ""));
+    return algorithm::join(*this, std::string(pc ? pc : ""));
 }
 
 string_list string_list::fromString(string const& toSplit,const char* delim,bool all,algorithm::token_compress_mode_type flags)
@@ -24,7 +25,8 @@ string_list string_list::fromString(string const& toSplit,const char* delim,bool
 
 string_list string_list::fromString(string const& toSplit,const char delim,bool all,algorithm::token_compress_mode_type flags)
 {
-    return string_list::fromString(toSplit,string(&delim),all,flags);
+    char pc[2] = {delim, 0};
+    return string_list::fromString(toSplit,string(pc),all,flags);
 }
 
 string_list string_list::fromString(string const& toSplit,string delim,bool all,algorithm::token_compress_mode_type flags)
@@ -46,6 +48,13 @@ string_list &string_list::operator=(string_list const& rhs)
     clear();
     std::copy(rhs.begin(),rhs.end(),back_inserter(*this));
     return *this;
+}
+
+string_list::string_list(std::initializer_list<std::string> list)
+{
+    for(auto & str : list) {
+        *this << str;
+    }
 }
 
 string_list::string_list(string_list const& rhs) : base()
@@ -99,6 +108,36 @@ bool string_list::operator==(string_list &rhs)
         std::back_inserter(diff)
     );
     return diff.empty();
+}
+
+std::string string_list::operator[](unsigned idx)
+{
+    if(idx > size()) {
+        throw Exception("List index out of range");
+    }
+    return *std::next(begin(), idx);
+}
+
+std::string string_list::join(char c)
+{
+    std::stringstream ss;bool once=false;
+    std::for_each(begin(), end(), [&ss,c,&once](auto & str){
+         if(once) ss << c;
+         once = true;
+         ss << str;
+     });
+    return ss.str();
+}
+
+std::string string_list::join(std::string const& chars)
+{
+    std::stringstream ss;bool once=false;
+    std::for_each(begin(), end(), [&ss,chars,&once](auto & str){
+        if(once) ss << chars;
+        once = true;
+        ss << str;
+    });
+    return ss.str();
 }
 
 string_list &operator<< (string_list &vecS,string const& str)

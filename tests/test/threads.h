@@ -8,9 +8,12 @@
 #include "../drumlin/tao_forward.h"
 #include "../drumlin/event.h"
 #include "../drumlin/thread_accessor.h"
+#include "../drumlin/uses_allocator.h"
+#include "terminator.h"
 
 class TestWorker
-    : public ThreadWorker {
+    : public ThreadWorker,
+     {
 public:
     int argc;
     char **argv;
@@ -113,16 +116,21 @@ protected:
 TEST_F(ApplicationTest, ThreadDoesWork) {
     Thread *testWorker = new Thread("test-worker", new TestWorker());
     Thread *terminator = new Thread("terminal", new Terminator());
-    std::string workToken("tell-test-worker:00000000-0000-0000-000001:1");
-    std::promise<typeof workToken> barrier;
-    iapp->queuePromise("promise-name", std::move(barrier));
-    // test shell interface thread 'terminator' requires 'testWorker' to do work
-    // uses 2-ary function as there is no data to pass in to the WorkObject
-    terminator->setWork({std::string(workToken), std::string("promise-name")});
+    Work::Token workToken("tell-test-worker", "00000000-0000-0000-0000-000000000001", 1);
+    Work::workPromise barrier;
+    auto access0 = testWorker->setWork(workToken);
+    access0
+        ->addDescriptor("[0]=blargle")
+    ;
+    auto access1 = terminator->setWork(workToken);
+    access1
+        ->addDescriptor("result=test-worker[0]")
+        ->queuePromise("promise-name", std::move(barrier))
+    ;
     // sends event "workHere" workToken to testWorker
     // which looks inside and resolves the promise by name
-    a.addThread(testWorker, true);
-    a.addThread(terminator, true);
+    iapp->addThread(testWorker, true);
+    iapp->addThread(terminator, true);
     barrier.get_future().wait();
     // testWorker
     ASSERT_EQ(barrier.get_future().get(), workToken);
@@ -130,6 +138,7 @@ TEST_F(ApplicationTest, ThreadDoesWork) {
     ASSERT_EQ(testWorker->doneWork(workToken + "blargle", false);
     ASSERT_EQ(terminator->doneWork(workToken), true);
     ASSERT_EQ(terminator->doneWork(workToken + "blargle", false);
+    ASSERT_EQ(testWorker->getWork(workToken)->fromName("result")->toString(), "success");
 }
 
 #endif // _THREADS_H_

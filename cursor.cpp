@@ -35,7 +35,7 @@ namespace Tracer {
 
 const char *Tracer::EndOfTrace = "\n\n\n";
 
-Tracer *tracer = nullptr;
+std::shared_ptr<Tracer> tracer = nullptr;
 
 /**
  * @brief startTrace : initialize global pointer
@@ -43,7 +43,7 @@ Tracer *tracer = nullptr;
  */
 void startTrace(string filename)
 {
-    tracer = new Tracer(filename);
+    tracer.reset(new Tracer(filename));
 }
 
 /**
@@ -51,7 +51,7 @@ void startTrace(string filename)
  */
 void endTrace()
 {
-    if(tracer!=nullptr)
+    if(!!tracer)
         tracer->write();
 }
 
@@ -62,7 +62,7 @@ void endTrace()
 void Cursor::backtrace(int n) {
 #ifndef _WIN32
 
-    if(nullptr==tracer)
+    if(!tracer)
         return;
 
     unw_cursor_t cursor;
@@ -204,26 +204,31 @@ void Tracer::addBlock(string const& block)
     list<string> lines;
     algorithm::split(lines,block,algorithm::is_any_of("\n"),algorithm::token_compress_on);
     string line;
-    json::value callchain(json::empty_array);
+    json::value stack(json::empty_array);
     while((line = lines.front())!=""){
         lines.pop_front();
-        boost::regex rx("0x[0-9a-f]+: \\(([^ ]+ )?(([^:]+::)+[^\\(]+)\\([^\\)]+\\)\\+0x[0-9a-f]+\\)",boost::regex::icase);
+        boost::regex rx("^0x[0-9a-f]+: \\((.*)\\+0x[0-9a-f]+\\)$",boost::regex::icase);
         boost::smatch cap;
+        std::cout << "LINE: " << line << std::endl;
         if(!boost::regex_match(line,cap,rx))
             continue;
-        string name(cap[cap.length()-1]);
+        string name(line.substr(cap.position(1), cap.length(1)));
+        std::cout << "NAME: " << name << std::endl;
         auto _roll = roll->get_array();
         auto it = std::find_if(_roll.begin(),_roll.end(),[name](json::value::array_t::value_type &rollcall){
-            return name == rollcall.get_object().at("name").get_string();
+            return name == rollcall.get_string();
         });
         if(it != _roll.end()){
-            callchain.append({ std::distance(_roll.begin(),it)});
+            std::cout << "ROLL: !=" << std::endl;
+            stack.append({ std::distance(_roll.begin(),it)});
         }else{
-            roll->get_array().push_back( { { { "name", name }, { "module", "" } } } );
-            callchain.append({ std::distance(_roll.begin(),_roll.end())});
+            std::cout << "ROLL: ==" << std::endl;
+            json::value v = name;
+            roll->get_array().push_back( v );
+            stack.append({ std::distance(_roll.begin(),_roll.end())});
         }
     }
-    chain->get_array().push_back(json::value{ { "callchain", callchain }, { "cost", json::value::array_t{ 1 } } });
+    chain->get_array().push_back(json::value{ { "stack", stack } });
 }
 
 /**
@@ -241,7 +246,11 @@ void Tracer::write()
         out = &fstream;
     }
     std::ostream &file(*out);
-    file << "{\"version\":0,\"costs\":[{\"description\":\"elapsed\"},{\"unit\":\"ns\"}],\"functions\":" << json::to_string(*roll) << ",\"events\":" << json::to_string(*chain) << "}";
+    file << "{\"version\":0,\"functions\":" \
+        << json::to_string(*roll)
+        << ",\"events\":"
+        << json::to_string(*chain)
+         << "}";
 }
 
 } // namespace Tracer
