@@ -1,6 +1,6 @@
 # days of yore
 
-Drumlin and Pleg were all that remained when I had separated concerns in a brief, all-encompassing edit prior to supervised deletion of the code I was NOT allowed to possess. The refactoring has hung around waiting for a serious attempt since 2017.
+Drumlin and Pleg were all that remained when I had separated concerns in a brief, all-encompassing edit prior to supervised deletion of the code I was NOT allowed to possess. The refactoring has hung around waiting for a serious attempt since 2017, being made of code which I had been permitted to keep.
 
 # drumlin
 
