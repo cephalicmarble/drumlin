@@ -1,5 +1,7 @@
+#define TAOJSON
 #include "application.h"
 
+#include <utility>
 #include <boost/thread.hpp>
 #include <boost/lexical_cast.hpp>
 using namespace boost;
@@ -7,7 +9,7 @@ using namespace boost;
 
 namespace drumlin {
 
-ApplicationBase *iapp;
+Application *iapp;
 
 /**
  * @brief Application::addThread : optionally start a thread as it is added
@@ -53,6 +55,13 @@ void Application::post(std::shared_ptr<Event> pevent)
     m_queue << pevent;
 }
 
+void Application::queuePromise(std::string name, Work::workPromise &&promise)
+{
+    PROMISELOCK;
+    auto entry = make_pair(name, std::move(promise));
+    m_promises.insert(std::move(entry));
+}
+
 int Application::exec()
 {
     std::shared_ptr<Event> pevent;
@@ -70,7 +79,7 @@ int Application::exec()
                 }
             }
             boost::this_thread::yield();
-            boost::this_thread::sleep(boost::posix_time::milliseconds(400));
+            boost::this_thread::sleep(boost::posix_time::milliseconds(1));
         }
     } catch(thread_interrupted &ti) {
         {LOGLOCK;Debug() << "thread interrupted: returning from Application::exec";}
@@ -214,6 +223,20 @@ bool Application::handleSignal(gremlin::SignalType signal)
     event::punt(event::make_event(DrumlinEventApplicationShutdown,
         gremlin::metaEnum<SignalType>().toString(signal),(Object*)(gint64)signal));
     return true;
+}
+
+void Application::getStatus(json::value *status)const
+{
+    THREADSLOCK;
+    json::value array(json::empty_array);
+    for(threads_type::value_type const& thread : m_threads){
+        json::value obj(json::empty_object);
+        thread->getWorker()->writeToObject(&obj);//report the thread
+        array.get_array().push_back(obj);
+
+        thread->getWorker()->getStatus(status);//report sub-system
+    }
+    status->get_object().insert({std::string("threads"),array});
 }
 
 } // namespace drumlin

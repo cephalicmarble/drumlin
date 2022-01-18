@@ -13,8 +13,8 @@ using namespace std;
 using namespace boost;
 #include "drumlin.h"
 #include "object.h"
-#include "registry.h"
 #include "gtypes.h"
+#include "work.h"
 using namespace drumlin;
 #include "../gremlin/compat.h"
 
@@ -31,6 +31,7 @@ class Server;
  * @brief The Thread class
  */
 class Thread
+    : public Work::Store
 {
     typedef boost::concurrent::sync_queue<std::shared_ptr<Event>> queue_type;
 public:

@@ -154,18 +154,22 @@ extern logger &operator<<(logger &stream, UseIdent &rhs);
 
 } // namespace drumlin
 
+namespace std {
+
 template<>
-struct std::hash<drumlin::UseIdent>
+struct hash<drumlin::UseIdent>
 {
-    std::size_t operator()(drumlin::UseIdent const& s) const noexcept
+    size_t operator()(drumlin::UseIdent const& s) const noexcept
     {
-        std::size_t seed = 0;
-        boost::hash_combine(seed, std::hash<guint64>{}((guint64)s.m_source));
-        boost::hash_combine(seed, std::hash<std::string>{}(s.m_source_name));
-        boost::hash_combine(seed, std::hash<std::string>{}(s.m_specification.toString()));
-        boost::hash_combine(seed, std::hash<guint32>{}(s.m_tick));
+        size_t seed = 0;
+        boost::hash_combine(seed, hash<guint64>{}((guint64)s.m_source));
+        boost::hash_combine(seed, hash<string>{}(s.m_source_name));
+        boost::hash_combine(seed, hash<string>{}(s.m_specification.toString()));
+        boost::hash_combine(seed, hash<guint32>{}(s.m_tick));
         return seed;
     }
 };
+
+}
 
 #endif // _USE_IDENT_H

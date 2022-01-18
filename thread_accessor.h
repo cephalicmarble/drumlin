@@ -3,7 +3,6 @@
 
 #include <memory>
 #include "application.h"
-#include "applicationbase.h"
 #include "thread.h"
 #include "thread_worker.h"
 

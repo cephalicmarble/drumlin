@@ -185,7 +185,7 @@ void Thread::run()
                 break;
             }
             boost::this_thread::yield();
-            boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+            boost::this_thread::sleep(boost::posix_time::milliseconds(1));
         }
         m_deleting = true;
     }

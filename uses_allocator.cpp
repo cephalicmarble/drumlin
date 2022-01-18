@@ -11,20 +11,18 @@
 namespace drumlin {
 
 UsesAllocator::UsesAllocator(std::string _token)
-: base(), m_token(_token)
+: m_token(_token)
 {
     APLATE;
 }
 
 UsesAllocator::UsesAllocator(UsesAllocator & rhs)
-: base()
 {
     APLATE;
     *this = rhs;
 }
 
 UsesAllocator::UsesAllocator(UsesAllocator && rvalue)
-: base()
 {
     PLATE1("rvalue");
     *this = rvalue;
@@ -95,7 +93,7 @@ void UsesAllocator::getStatus(json::value *status)
 void UsesAllocator::report(json::value *obj,ReportType type)
 {
     obj->get_object().insert({std::string("process"),m_process.count()});
-    if(type & WorkObject::ReportType::Memory){
+    if(type & Work::Done::ReportType::WorkReport_Heap){
         CPS_call([&obj](Buffers::heap_ptr_type heap)->void{
             if(!heap)
                 return;

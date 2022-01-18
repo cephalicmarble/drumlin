@@ -27,8 +27,6 @@ cursor.cpp
 cursor.h
 drumlin.h
 drumlin.cpp
-applicationbase.h
-applicationbase.cpp
 string_list.h
 string_list.cpp
 allocator.h
@@ -43,4 +41,10 @@ buffer_cache.h
 buffer_cache.cpp
 buffer.h
 buffer.cpp
+work.h
+work.cpp
+regexen.h
+regexen.cpp
+jsonconfig.h
+jsonconfig.cpp
 ../gremlin/compat.h

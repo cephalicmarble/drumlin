@@ -27,12 +27,7 @@ namespace Buffers {
  * migration from one to the other.
  */
 class UsesAllocator
-    : public std::enable_shared_from_this<UsesAllocator>
 {
-    typedef std::enable_shared_from_this<UsesAllocator> base;
-
-    std::weak_ptr<ThreadWorker> m_worker;
-
     guint32 m_data_length;                  // sizeof
     guint32 m_buffer_size;                  // backlog
     time_duration_t m_tau;                       // tick-duration
