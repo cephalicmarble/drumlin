@@ -199,8 +199,6 @@ Tracer::~Tracer()
  */
 void Tracer::addBlock(string const& block)
 {
-//    quint32 clock(lines.front().toDouble());
-//    lines.pop_front(); //clock
     list<string> lines;
     algorithm::split(lines,block,algorithm::is_any_of("\n"),algorithm::token_compress_on);
     string line;
@@ -209,20 +207,20 @@ void Tracer::addBlock(string const& block)
         lines.pop_front();
         boost::regex rx("^0x[0-9a-f]+: \\((.*)\\+0x[0-9a-f]+\\)$",boost::regex::icase);
         boost::smatch cap;
-        std::cout << "LINE: " << line << std::endl;
+        // std::cout << "LINE: " << line << std::endl;
         if(!boost::regex_match(line,cap,rx))
             continue;
         string name(line.substr(cap.position(1), cap.length(1)));
-        std::cout << "NAME: " << name << std::endl;
+        // std::cout << "NAME: " << name << std::endl;
         auto _roll = roll->get_array();
         auto it = std::find_if(_roll.begin(),_roll.end(),[name](json::value::array_t::value_type &rollcall){
             return name == rollcall.get_string();
         });
         if(it != _roll.end()){
-            std::cout << "ROLL: !=" << std::endl;
+            // std::cout << "ROLL: !=" << std::endl;
             stack.append({ std::distance(_roll.begin(),it)});
         }else{
-            std::cout << "ROLL: ==" << std::endl;
+            // std::cout << "ROLL: ==" << std::endl;
             json::value v = name;
             roll->get_array().push_back( v );
             stack.append({ std::distance(_roll.begin(),_roll.end())});
