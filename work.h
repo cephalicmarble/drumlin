@@ -30,6 +30,7 @@ using namespace tao;
     (WorkReport_All)(7) \
 )
 
+
 ENUMN(ReportType, WorkReportTypes);
 
 namespace drumlin {

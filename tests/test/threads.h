@@ -12,8 +12,8 @@
 #include "terminator.h"
 
 class TestWorker
-    : public ThreadWorker,
-     {
+    : public ThreadWorker
+{
 public:
     int argc;
     char **argv;
@@ -114,17 +114,17 @@ protected:
 
 // Tests that the Foo::Bar() method does Abc.
 TEST_F(ApplicationTest, ThreadDoesWork) {
-    Thread *testWorker = new Thread("test-worker", new TestWorker());
     Thread *terminator = new Thread("terminal", new Terminator());
+    Thread *testWorker = new Thread("test-worker", new TestWorker());
     Work::Token workToken("tell-test-worker", "00000000-0000-0000-0000-000000000001", 1);
     Work::workPromise barrier;
-    auto access0 = testWorker->setWork(workToken);
+    auto access0 = terminator->setWork(workToken);
     access0
-        ->addDescriptor("[0]=blargle")
+        ->addDescriptor("[0]=\"blargle\"")
     ;
-    auto access1 = terminator->setWork(workToken);
+    auto access1 = testWorker->setWork(workToken);
     access1
-        ->addDescriptor("result=test-worker[0]")
+        ->addDescriptor("result=terminal[0]")
         ->queuePromise("promise-name", std::move(barrier))
     ;
     // sends event "workHere" workToken to testWorker
@@ -138,7 +138,7 @@ TEST_F(ApplicationTest, ThreadDoesWork) {
     ASSERT_EQ(testWorker->doneWork(workToken + "blargle", false);
     ASSERT_EQ(terminator->doneWork(workToken), true);
     ASSERT_EQ(terminator->doneWork(workToken + "blargle", false);
-    ASSERT_EQ(testWorker->getWork(workToken)->fromName("result")->toString(), "success");
+    ASSERT_EQ(testWorker->getWork(workToken)->fromName("result")->toString(), "blargle");
 }
 
 #endif // _THREADS_H_

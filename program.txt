@@ -1,0 +1,71 @@
+//WorkObject associated with workToken
+//    'name='
+//every[%] searches amongst promises, waiting for them all
+//every[*] waits for anchor to finish with workToken
+//each[*] searches amongst anchored descriptors, ** retrieves
+//each[%] search amongst anchored promises, %% retrieves
+//wait[%] make work: pause until expected promise resolves
+//prepend '~' to make anchored expression
+//expect[*], [%] to mark a promise name
+//[<.*>], this data can use placeholders
+//[~]= this data will be named by '=value'
+//    '=value'
+// "file://<path>"" offers <path>, <basename>, <dirname> placeholders
+// "work:<work-name>(<work-item>) offers <promise> (=) <work-name> is specific
+// also counter-offers (item)
+
+// Thread::work lifecycle
+// (pull) Thread::event, ThreadWorker::event, ThreadWorker::work (bool)
+// Work::per-thread lifecycle
+// (workToken) iapp->setWork, Object::initiation, ->Thread::event
+// Descriptor::within-Object lifecycle
+// (string) parse, span, seed, (hook)
+
+//IMAGINE A VID STREAM
+//Thread:terminator
+//[<basename>]=rtsp://url
+//
+//Thread:stream-process
+//[anchor]=terminator
+//[gstreamer]="string!string!etc"
+//each[*]->[**-check]=work:parity-check(<>)
+//
+//Thread:analysis
+//[anchor]=stream-process
+//[*]->work:output(<>)
+//~wait[%-check]->[~]=work:perform-analysis(<>)
+
+//STATIC ANALYSIS
+//Thread:terminator
+//[<basename>]=file://<path>
+//[<path>]=glob://<glob>
+//
+//Thread:top-level-file-parser
+//[anchor]=terminator
+//~each[*]->[<>]=work:top-level-parse(<>)
+//
+//Thread:class-ontology
+//[anchor]=top-level-file-parser
+//~wait[%]->work:top-level-parse(<>)
+//~each[%]->[class-<>]=work:decl-parser(class-<>)
+//expect[method-<>]
+//expect[field-<>]
+//
+//Thread:class-sparql
+//[anchor]=class-ontology
+//~each[method-%]->[~]=sparql:/class/method/<>
+//~each[field-%]->[~]=sparql:/class/method/<>
+
+//TEST
+//Thread:terminator
+//[<basename>]=file://../tests/test/test.json
+//
+//Thread:json-test-parser
+//[anchor]=terminator
+//~wait[%]->work:json-length-check(<>)
+//~each[*]->[~]=work:json-test-parse(<>)
+//
+//Thread:json-test-output
+//[anchor]=test-output
+//~every[*]->[~]=text:<>
+//[*]->work:test-output(<>)
